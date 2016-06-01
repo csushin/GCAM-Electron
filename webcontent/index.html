@@ -1,0 +1,2148 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>GCAM</title>
+	<meta charset="utf-8" />
+
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/leaflet.css" />
+	<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/themes/smoothness/jquery-ui.css">
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.10.0/css/bootstrap-select.min.css">
+	<link rel="stylesheet" href="https://cdn.datatables.net/t/dt/dt-1.10.11,fc-3.2.1,fh-3.1.1/datatables.min.css"/>
+	<link rel="stylesheet" href="js/lib/jQuery-contextMenu/jquery.contextMenu.min.css"/>
+	<style>
+
+	html, body
+	{
+	    font: 100%;
+	    margin: 0 auto;
+	    padding: 0;
+	    padding-top: 30px;
+	    text-align: center;
+	    height: 100%;
+	    width: 98%;
+	}
+
+	svg {
+	  font: 10px sans-serif;
+	}
+
+	.legend tspan {
+	  font: 8px sans-serif;
+	}
+	.area {
+	  fill: red;
+	  clip-path: url(#clip);
+	}
+	.axis path,
+	.axis line {
+	  fill: none;
+	  stroke: #000;
+	  shape-rendering: crispEdges;
+	}
+
+	.brush .extent {
+	  stroke: #fff;
+	  fill-opacity: .125;
+	  shape-rendering: crispEdges;
+	}
+
+	.x.axis path {
+	  display: none;
+	}
+
+	.line {
+	  fill: none;
+	  stroke: steelblue;
+	  stroke-width: 1.5px;
+	}
+
+	#map-container
+	{
+	    width: 100%;
+	    height: 100%;
+	    margin:0px auto;
+	}
+	#map {
+		float:left;
+	    /*width: 60%;*/
+	    width: 70%;
+	    height: 50%;
+	    position: relative;
+	}
+	#info {
+	    width: 85%;
+	    height: 50%;
+	    position: relative;
+	    float:left;
+	    /*float:right;*/
+	}
+	#file-div{
+		position: relative;
+		float:left;
+		width: calc(30% - 10px);
+		padding-left: 10px;
+		height: 50%;
+	}
+	.fileInputDiv{
+		display:block;
+		width: 100%;
+	}
+	#file-selection{
+		/*font-size: 12px;*/
+		margin-top:5px;
+		display:block;
+	}
+
+	/*#fileSelectedDiv{
+		font-size: 10px;
+	}*/
+
+	#fileSelected-button{
+		width: 100%;
+	}
+
+	#timeline-container{
+		width: 100%;
+	    height: 25%;
+	    float: left;
+	    position: relative;
+	}
+	#timeline{
+		width : 100%;
+		height: 100%;
+	}
+
+	/**********
+	*  Legend
+	*/
+	/*#legend{
+		width: 100%;
+		position: absolute;
+		height:50%;
+    	bottom: 0;
+    	display:block;
+	}*/
+	#legend{
+		width: 15%;
+		position: relative;
+		height: 49%;
+		float: right;
+	}
+	.legend {                                               
+		font-size: 12px;                                      
+	}	                                                       
+	rect {                                                  
+		stroke-width: 2;                                      
+	}                                                       
+    
+
+	/*https://coderwall.com/p/ryargg/a-very-simple-loading-animation-in-5-lines-of-javascript*/
+	#loading{
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100%;
+		background:  rgba(255,255,255,0.7);
+    	z-index:  1000;
+		height: 100%;
+		text-align: center;
+		margin: auto;
+		padding: 0;
+		overflow: hidden;
+		font-size: 250%;
+		visibility: none;
+		vertical-align: middle;
+	}
+
+	.no-link{
+		cursor: pointer;
+	}
+
+	
+	/* Dendogram styling*/
+	#den-container{
+		width: 100%;
+		height: 100%;
+	}
+
+	.node {
+	  cursor: pointer;
+	}
+
+	.node circle {
+	  fill: #fff;
+	  stroke: steelblue;
+	  stroke-width: 1.5px;
+	}
+
+	.node text {
+	  font: 10px sans-serif;
+	}
+
+	.link {
+	  fill: none;
+	  stroke: #ccc;
+	  stroke-width: 1.5px;
+	}
+
+	/* Parallel Coordinates styling */
+	.background path {
+	  fill: none;
+	  stroke: #ddd;
+	  shape-rendering: crispEdges;
+	}
+
+	.foreground path {
+	  fill: none;
+	  stroke: steelblue;
+	}
+
+	.brush .extent {
+	  fill-opacity: .3;
+	  stroke: #fff;
+	  shape-rendering: crispEdges;
+	}
+
+	.wrapper {
+		position:absolute;
+		top:50%;
+		left:50%;
+	}
+
+	.axis text {
+	  text-shadow: 0 1px 0 #fff, 1px 0 0 #fff, 0 -1px 0 #fff, -1px 0 0 #fff;
+	  cursor: move;
+	}
+
+	#par-container
+	{
+	    width: 100%;
+	    height: 100%;
+	    margin:0px auto;
+	}
+
+	#par-controls-container
+	{
+		width: 100%;
+	    height: 5%;
+		display: none;
+	}
+
+	#par-main-container
+	{
+		width: 100%;
+	    height: 95%;
+	}
+
+	#par-svg-container
+	{
+		width: 100%;
+		height: 60%;
+	}
+	#par-plot{
+		float: right;
+		padding-right: 10px;
+	}
+	#par-year{
+		float: right;
+	}
+	#par-title{
+		margin-left: auto;
+        margin-right: auto;
+	}
+
+	/* Evolution styling*/
+	#evo-container{
+		width: 100%;
+		height: 100%;
+		position: relative;
+	}
+
+	#evo-controls-container
+	{
+		width: 100%;
+	    height: 40px;
+		display: none;
+	}
+	#evo-cluster{
+		float: right;
+		padding-right: 10px;
+	}
+
+	#evo-year{
+		float: right;
+	}
+
+	#evo-svg-container
+	{
+		/*width: 100%;*/
+		position: absolute;
+		top: 40px;
+		left: 0px;
+		right: 0px;
+		bottom: 0px;
+	}
+
+	#loading{
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100%;
+		background:  rgba(255,255,255,0.7);
+    	/*z-index:  1000;*/
+		height: 100%;
+		text-align: center;
+		margin: auto;
+		padding: 0;
+		overflow: hidden;
+		font-size: 250%;
+		display: none;
+		vertical-align: middle;
+	}
+
+	/*https://coderwall.com/p/ryargg/a-very-simple-loading-animation-in-5-lines-of-javascript*/
+	#loadingScreen{
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100%;
+		background:  rgba(255,255,255,0.7);
+    	z-index:  1000;
+		height: 100%;
+		text-align: center;
+		margin: auto;
+		padding: 0;
+		overflow: hidden;
+		font-size: 250%;
+		display: none;
+		vertical-align: middle;
+	}
+
+	#fountainTextG{
+		position:absolute;
+	}
+
+	.fountainTextG{
+		color:rgb(0,126,204);
+		font-family:Arial;
+		font-size:106px;
+		text-decoration:none;
+		font-weight:normal;
+		font-style:normal;
+		float:left;
+		animation-name:bounce_fountainTextG;
+			-o-animation-name:bounce_fountainTextG;
+			-ms-animation-name:bounce_fountainTextG;
+			-webkit-animation-name:bounce_fountainTextG;
+			-moz-animation-name:bounce_fountainTextG;
+		animation-duration:3.46s;
+			-o-animation-duration:3.46s;
+			-ms-animation-duration:3.46s;
+			-webkit-animation-duration:3.46s;
+			-moz-animation-duration:3.46s;
+		animation-iteration-count:infinite;
+			-o-animation-iteration-count:infinite;
+			-ms-animation-iteration-count:infinite;
+			-webkit-animation-iteration-count:infinite;
+			-moz-animation-iteration-count:infinite;
+		animation-direction:normal;
+			-o-animation-direction:normal;
+			-ms-animation-direction:normal;
+			-webkit-animation-direction:normal;
+			-moz-animation-direction:normal;
+		transform:scale(.5);
+			-o-transform:scale(.5);
+			-ms-transform:scale(.5);
+			-webkit-transform:scale(.5);
+			-moz-transform:scale(.5);
+	}#fountainTextG_1{
+		animation-delay:1.24s;
+			-o-animation-delay:1.24s;
+			-ms-animation-delay:1.24s;
+			-webkit-animation-delay:1.24s;
+			-moz-animation-delay:1.24s;
+	}
+	#fountainTextG_2{
+		animation-delay:1.48s;
+			-o-animation-delay:1.48s;
+			-ms-animation-delay:1.48s;
+			-webkit-animation-delay:1.48s;
+			-moz-animation-delay:1.48s;
+	}
+	#fountainTextG_3{
+		animation-delay:1.73s;
+			-o-animation-delay:1.73s;
+			-ms-animation-delay:1.73s;
+			-webkit-animation-delay:1.73s;
+			-moz-animation-delay:1.73s;
+	}
+	#fountainTextG_4{
+		animation-delay:1.98s;
+			-o-animation-delay:1.98s;
+			-ms-animation-delay:1.98s;
+			-webkit-animation-delay:1.98s;
+			-moz-animation-delay:1.98s;
+	}
+	#fountainTextG_5{
+		animation-delay:2.22s;
+			-o-animation-delay:2.22s;
+			-ms-animation-delay:2.22s;
+			-webkit-animation-delay:2.22s;
+			-moz-animation-delay:2.22s;
+	}
+	#fountainTextG_6{
+		animation-delay:2.47s;
+			-o-animation-delay:2.47s;
+			-ms-animation-delay:2.47s;
+			-webkit-animation-delay:2.47s;
+			-moz-animation-delay:2.47s;
+	}
+	#fountainTextG_7{
+		animation-delay:2.72s;
+			-o-animation-delay:2.72s;
+			-ms-animation-delay:2.72s;
+			-webkit-animation-delay:2.72s;
+			-moz-animation-delay:2.72s;
+	}
+
+
+
+
+	@keyframes bounce_fountainTextG{
+		0%{
+			transform:scale(1);
+			color:rgb(0,126,204);
+		}
+
+		100%{
+			transform:scale(.5);
+			color:rgb(255,255,255);
+		}
+	}
+
+	@-o-keyframes bounce_fountainTextG{
+		0%{
+			-o-transform:scale(1);
+			color:rgb(0,126,204);
+		}
+
+		100%{
+			-o-transform:scale(.5);
+			color:rgb(255,255,255);
+		}
+	}
+
+	@-ms-keyframes bounce_fountainTextG{
+		0%{
+			-ms-transform:scale(1);
+			color:rgb(0,126,204);
+		}
+
+		100%{
+			-ms-transform:scale(.5);
+			color:rgb(255,255,255);
+		}
+	}
+
+	@-webkit-keyframes bounce_fountainTextG{
+		0%{
+			-webkit-transform:scale(1);
+			color:rgb(0,126,204);
+		}
+
+		100%{
+			-webkit-transform:scale(.5);
+			color:rgb(255,255,255);
+		}
+	}
+
+	@-moz-keyframes bounce_fountainTextG{
+		0%{
+			-moz-transform:scale(1);
+			color:rgb(0,126,204);
+		}
+
+		100%{
+			-moz-transform:scale(.5);
+			color:rgb(255,255,255);
+		}
+	}
+
+	td.highlight {
+	    background-color: whitesmoke !important;
+	}
+
+	.loadingBar {
+	    height: 3px;
+	    background-color: #007dcc;
+	    position: absolute;
+	    top: 0;
+	    left: 0;
+	    z-index: 999999;
+	}
+
+	</style>
+</head>
+<body>
+	<div class="navbar navbar-default navbar-fixed-top" role="navigation">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#" onclick= "location.href='https://vader.dtn.asu.edu:8843/GCAM/';">GCAM</a>
+        </div>
+        <div class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+            <li class="dropdown">
+              <a href="#file" class="dropdown-toggle" data-toggle="dropdown">File <b class="caret"></b></a>
+              <ul class="dropdown-menu">
+                <!-- <li><a href="#" onclick= "location.href='http://www.public.asu.edu/~msteptoe/SYDOVAT/index.html';">New</a></li> -->
+                <!-- <li><a onclick="openClicked()">Open...</a></li> -->
+                <li><a onclick="openClickedNew()">Open</a></li>
+                <!-- <li><a href="#" onclick="saveClicked()">Save</a></li>
+                <li role="presentation" class="divider"></li>
+                <li><a href="#" onclick="importClicked()">Import Synthetic Data</a></li>
+                <li><a href="#" onclick="exportClicked()">Export Synthetic Data</a></li> -->
+              </ul>
+            </li>
+            <li id="den-li"><a class="no-link" onclick="changeView('#den')">Dendogram</a></li>
+            <li id="fig-li"><a class="no-link" onclick="changeView('#fig')">Fig</a></li>
+            <li id="map-li"><a class="no-link" onclick="changeView('#map')">Map</a></li>
+            <li id="par-li"><a class="no-link" onclick="changeView('#par')">Parallel Coordinates</a></li>
+            <li id="evo-li"><a class="no-link" onclick="changeView('#evo')">Evolution</a></li>
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div>
+    </div>
+
+    <div id="loading">
+    <div id="canvasloader-container" class="wrapper"></div>
+    </div>
+
+    <div id="loadingScreen">
+    	<div id="fountainTextG"><div id="fountainTextG_1" class="fountainTextG">L</div><div id="fountainTextG_2" class="fountainTextG">o</div><div id="fountainTextG_3" class="fountainTextG">a</div><div id="fountainTextG_4" class="fountainTextG">d</div><div id="fountainTextG_5" class="fountainTextG">i</div><div id="fountainTextG_6" class="fountainTextG">n</div><div id="fountainTextG_7" class="fountainTextG">g</div></div>
+	</div>
+
+	<!-- <div id="map" style="width: 600px; height: 400px"></div>
+	<input type="file" id="fileInput" multiple /> -->
+
+	<div id="map-container" style="display:none;">
+		<div id="map"></div>
+
+		<!-- <div id="timeline-container">
+			<div id="timeline">
+			</div>
+		</div> -->
+		<div id="file-div">
+			<div id="file-selection" style="display:none;">		
+			    <label for="fileSelected" >Select a file to view</label>
+			    <div id='fileSelectedDiv' name="fileSelectedDiv">
+			    	<label>
+			    		<select name="fileSelected" id="fileSelected" style="width:100%;">
+			    		</select>
+			    	</label>
+			    </div>
+
+			</div>
+			<!-- <div id="legend"></div> -->
+		</div>
+
+		<div id="info"></div><div id="legend"></div>
+		<div id="fileInputDiv" class="fileInputDiv" style="display:none;">
+			<input type="file" id="fileInput" multiple/>
+		</div>
+		<div id="fileInputDivNew" class="fileInputDiv" style="display:none;">
+			<input type="file" id="fileInputNew" multiple/>
+		</div>
+	</div>
+
+	<div id="den-container" style="display:none;">
+	</div>
+
+	<div id="fig-container" style="display:none;">
+		<pre id="mypre"></pre>
+	</div>
+
+	<div id="par-container" style="display:none;">
+		<div id="par-controls-container">			
+			<div id="par-year">
+				<label>
+					Year
+					<select id='par-year-select' class="" name="par-year" aria-controls="par-year"></select>
+				</label>
+			</div>
+
+			<div id="par-plot">
+				<label>
+					Plot
+					<select id='par-plot-select' class="" name="par-plot" aria-controls="par-plot">
+						<option value="0" selected>Value</option> 
+						<option value="1">Slope</option>
+					</select>
+				</label>
+			</div>
+
+			<div id="par-title">
+				<label>
+				</label>
+			</div>
+			
+		</div>
+		<div id="par-main-container">
+			<div id="par-svg-container"></div>
+			<table id="example" class="display" cellspacing="0" width="100%"></table>
+		</div>
+	</div>
+	<div id="evo-container" style="display:none;">
+		<div id="evo-controls-container">
+			<div id="evo-year">
+				<label>
+					Show Years
+					<select id='evo-year-select' class="" name="evo-year" aria-controls="evo-year">
+						<option value="0" selected>Yes</option>
+						<option value="1">No</option>
+					</select>
+				</label>
+			</div>		
+			<div id="evo-cluster">
+				<label>
+					Select Dimensions
+					<select id='evo-cluster-select' class="" name="evo-cluster" aria-controls="evo-cluster">
+						<option value="0" selected>Cluster</option>
+						<option value="1">Cluster With Distance</option>
+						<option value="3">Feature Space</option>
+					</select>
+				</label>
+			</div>			
+		</div>
+		<div id="evo-svg-container"></div>
+	</div>
+	
+	
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/leaflet.js"></script>
+	<!-- <script src="js/lib/jquery.min.js"></script> -->.
+	<script type="text/javascript" src="js/lib/jquery.min.js" onload="window.$ = window.jQuery = module.exports;"></script>
+	<!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script> -->
+	<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.14/d3.min.js" onload="window.d3 = module.exports;"></script>
+	<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.14/d3.min.js"></script> -->
+	<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
+	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.10.0/js/bootstrap-select.min.js"></script>
+	<script src="https://cdn.socket.io/socket.io-1.4.5.js"></script>
+	<script src="https://cdn.datatables.net/t/dt/dt-1.10.11,fc-3.2.1,fh-3.1.1/datatables.min.js"></script>
+	<!-- <script src="https://cdn.datatables.net/1.10.11/js/jquery.dataTables.min.js"></script> -->
+	<script src="js/lib/colorbrewer.js"></script>
+	<script src="js/lib/d3.tip.v0.6.3.js"></script>
+	<script src="js/lib/figue.js"></script>
+	<script src="js/lib/canvasloader.js"></script>
+	<script src="js/lib/jQuery-contextMenu/jquery.contextMenu.min.js"></script>
+	<script src="js/lib/jQuery-contextMenu/jquery.ui.position.min.js"></script>
+
+	<script src="js/Dendogram.js"></script>
+	<script src="js/ParallelCoordinates.js"></script>
+	<script src="js/DataTable.js"></script>
+	<script src="js/Evo.js"></script>
+
+	<script>
+		localStorage.clear();
+
+		var loadingBar = $('<div class="loadingBar"></div>');
+	    loadingBar.width(0);
+	    $('body').append(loadingBar);
+
+	    var showLoadingBar = function() {
+		    loadingBar.fadeIn(100);
+		    loadingBar.width(0.1 * window.innerWidth);
+		    progressLoadingBar(0.05);
+		};
+
+		var progressLoadingBar = function(progress){
+			// console.log('progressLoadingBar');
+			var width =  loadingBar.width();
+			var delay = 0;
+
+			if(progress){
+				if(progress > 0.1){
+					width += (progress - 0.1) * window.innerWidth;
+					delay = 250;
+				}
+			}
+			else if(width < window.innerWidth - 0.01 * window.innerWidth){
+				width += 0.01 * window.innerWidth;
+			}
+			else{
+				return;
+			}
+			
+
+			loadingBar.animate(
+		        { width: width },
+		        delay
+		    );
+		}
+
+		var hideLoadingBar = function(delay) {
+		    var fadeOut = 100;
+
+		    if(delay)
+		        fadeOut = delay;
+
+		    loadingBar.animate(
+		        { width: window.innerWidth },
+		        500,
+		        function() { loadingBar.fadeOut(delay); }
+		    );
+		};
+
+		//http://bl.ocks.org/bobmonteverde/2070069 
+		var geoJsonArray = [], dataArray = [], parameters = [], fileNames = [];
+		var currentLayerData = [];
+		var currentFile = {};
+		var state = {
+			geoLoaded: 0,
+			scenariosLoaded: 0,
+			fileCount: 0,
+			scenarioCount: 0,
+			sizes: {
+				parCoor: {
+					main: {
+						height: 0.95,
+						mHeight: 0,
+						mWidth: 0
+					},
+					controls: {
+						height: 0.05
+					}
+				}
+			},
+			map: {
+				selectedLayer: null,
+			},
+			parCoor: {
+				year: 0,
+				plot: 0,
+				filenames: [],
+				obj: null
+			},
+			dataTable: {
+				hasLoaded: false
+			},
+			evo: {
+				mode: 0,
+				pcaMode: 0,
+				pythonMode: 0,
+				obj: null
+			},
+			resize: false,
+			years: [],
+			yearsScaled: [],
+			fileMode: 0,
+		};
+
+		var clusterShapefile = {},
+		clusterData = {},
+		clusterQueries = [],
+		clusterKeys = {};
+
+		var canvasLoader = new CanvasLoader('canvasloader-container');
+		canvasLoader.setShape('spiral'); // default is 'oval'
+		canvasLoader.setDiameter(160); // default is 40
+		canvasLoader.setDensity(42); // default is 40
+		
+		// This bit is only for positioning - not necessary
+		var loaderObj = document.getElementById("canvasLoader");
+  		loaderObj.style.position = "absolute";
+  		loaderObj.style["top"] = canvasLoader.getDiameter() * -0.5 + "px";
+  		loaderObj.style["left"] = canvasLoader.getDiameter() * -0.5 + "px";
+
+		var clusterColors = [
+		   [20, 20, 80],
+		   [22, 22, 90],
+		   [250, 255, 253],
+		   [100, 54, 255]
+		];
+		// console.log(window.location.href + "/GCAM")
+	    // var socket = io(window.location.href, { path: '/GCAM/socket.io/'});
+
+	    // var socket = io();
+	    // const BrowserWindow = require('electron').remote.BrowserWindow
+	    // const path = require('path')
+	    const socket = require('electron').ipcRenderer
+	    state.useServer = true;
+	    // const windowID = BrowserWindow.getFocusedWindow().id
+	    // const invisPath = 'file://' + path.join(__dirname, './invisible.html')
+
+	    /*$( document ).ready(function() {
+		    $('#fountainTextG').css({
+				left: ($(window).width() - $('#fountainTextG').outerWidth())/2,
+				top: ($(window).height() - $('#fountainTextG').outerHeight())/2
+			});
+		});*/
+	    /*$( document ).ready(function() {
+	    	
+			let win = new BrowserWindow({ width: 400, height: 400, show: false })
+			win.loadURL(invisPath)
+
+			win.webContents.on('did-finish-load', function () {
+				console.log('did-finish-load')
+		    	const input = 100
+
+		    	socket.send('connect', windowID)
+
+			    socket.send('compute-factorial', input, windowID)
+			})
+
+			$(window).bind("beforeunload", function() { 
+				console.log("window closing")
+			    return win.close(); 
+			})
+	    });*/
+
+		/*let win = new BrowserWindow({ width: 400, height: 400, show: false })
+		win.loadURL(invisPath)
+
+		win.webContents.on('did-finish-load', function () {
+			console.log('did-finish-load')
+	    	socket.send('connect', windowID)
+		})*/
+
+		/*socket.on('connected', function () {
+			console.log('did-finish-connect')
+	    	const input = 100
+		    socket.send('compute-factorial', input, windowID)
+		})*/
+
+		socket.on('console', function (event, args, optional) {
+			console.log(args, optional)
+		})
+
+		// $(window).bind("beforeunload", function() { 
+		// 	console.log("window closing")
+		//     return win.close(); 
+		// })
+
+	    socket.on('factorial-computed', function (event, input, output) {
+		  console.log(`The factorial of ${input} is ${output}`)
+		})
+
+	    socket.on('asynchronous-reply', function (event, arg) {
+		  console.log(`Asynchronous message reply: ${arg}`)
+		})
+
+	    // socket.on('connect', function(){
+	    // 	console.log('connected!');
+	    // 	state.useServer = true;
+	    // });
+
+	    socket.on('progress update', function(event, progress){
+	    	console.log('progress update');
+	    	progressLoadingBar(progress);
+	    });
+
+	    socket.on('cluster response', function(event, result){
+	    	// console.log(result);
+	    	yearlyClusterRequest();
+	    	clusters = result.clusters;
+
+			// Render the dendogram in the page (note: pre is handled differently by IE and the rest of the browsers)
+			var pre = document.getElementById('mypre') ;
+			if( document.all ) {
+				re.innerText = result.dendogram;
+			}
+			else {
+				pre.innerHTML = result.dendogram;
+			}
+
+			// buildD3Cluster(result.cluster);
+
+			zDendogram(result.d3Cluster);
+
+			console.log("hideLoading");
+			hideLoading();			
+	    });
+
+	    function yearlyClusterRequest(mode, pcaMode, pythonMode, delay){
+	    	console.log('yearly cluster request');
+			socket.send('yearly cluster request', {
+				queries: clusterQueries,
+				keys: clusterKeys,
+				scenarios: clusterData,
+				mode: !mode ? state.evo.mode : mode,
+				pcaMode: !pcaMode ? state.evo.pcaMode : pcaMode,
+				pythonMode: !pythonMode ? state.evo.pythonMode : pythonMode,
+			});
+			setTimeout(showLoading, !delay ? 1000 : delay);
+	    }
+
+	    socket.on('yearly cluster response', function(event, result){
+	    	console.log(result);
+	    	yearVectors = result;
+
+	    	$('#evo-controls-container').show();
+
+	    	state.evo.obj = new scatter(yearVectors);
+	    	hideLoading();
+
+			// Render the dendogram in the page (note: pre is handled differently by IE and the rest of the browsers)
+			/*var pre = document.getElementById('mypre') ;
+			if( document.all ) {
+				re.innerText = result.dendogram;
+			}
+			else {
+				pre.innerHTML = result.dendogram;
+			}
+
+			// buildD3Cluster(result.cluster);
+
+			zDendogram(result.d3Cluster);
+
+			console.log("hideLoading");
+			hideLoading();*/
+	    });
+
+	    socket.on('iris data response', function(event, result){
+	    	// console.log(result);
+	    	irisData = result;
+
+	    	scatter(irisData);
+	    });
+
+	    // socket.send('cluster request', clusterColors);
+
+	    socket.on('process response', function(event, result){
+	    	globalVector = result;
+	    	console.log('process response', result);
+	    });
+
+	    function storeData(index){
+	    	socket.send('store data request', {index: index, queries: clusterQueries, keys: clusterKeys, scenarios: clusterData});
+	    }
+
+	    function compareData(){
+	    	socket.send('compare data request');
+	    }
+
+	    // function showLoading(){
+	    // 	canvasLoader.show(); // Hidden by default
+	    // 	$('#loading').show();
+	    // }
+	    function showLoading(showScreen){
+	    	showLoadingBar();
+	    	if(showScreen){
+	    		$('#loadingScreen').show();
+	    		$('#fountainTextG').css({
+					left: ($(window).width() - $('#fountainTextG').outerWidth())/2,
+					top: ($(window).height() - $('#fountainTextG').outerHeight())/2
+				});
+	    	}
+	    }
+
+	    function hideLoading(){
+	    	hideLoadingBar();
+	    	$('#loadingScreen').hide();
+	    }
+
+		var clusters;
+
+	    function buildD3Cluster(cluster){
+			var d3Cluster = {name: "Scenarios", children: []};
+			d3Cluster.children = generateDendogram(cluster).children;
+			return d3Cluster;
+		}
+
+
+		function generateDendogram(tree){
+			var cluster = {};
+
+			if (tree.isLeaf()) {
+				var labelstr = String(tree.label);
+				cluster.name = labelstr;
+				cluster.centroid = tree.centroid;
+
+			} else {
+				cluster.name = "dist: " + (tree.dist).toFixed(2);
+				cluster.children = [];
+				cluster.children.push(generateDendogram(tree.left));
+				cluster.children.push(generateDendogram(tree.right)) ;			}
+			return cluster;
+		}
+
+		function checkFigue(){
+			var data = [ 
+				{'company': 'Microsoft' , 'size': 91259, 'revenue': 60420},
+				{'company': 'IBM' , 'size': 400000, 'revenue': 98787},
+				{'company': 'Skype' , 'size': 700, 'revenue': 716},
+				{'company': 'SAP' , 'size': 48000, 'revenue': 11567},
+				{'company': 'Yahoo!' , 'size': 14000 , 'revenue': 6426 },
+				{'company': 'eBay' , 'size': 15000, 'revenue': 8700},
+			];
+			// Create the labels and the vectors describing the data
+			var labels = [];
+			var vectors = [];
+			for (var i = 0 ; i < data.length ; i++) {
+				labels[i] = data[i]['company'] ;
+				vectors[i] = [ data[i]['size'] , data[i]['revenue']];
+			}
+
+			globalCluster = figue.agglomerate(labels, vectors, figue.EUCLIDIAN_DISTANCE, figue.AVERAGE_LINKAGE);
+		}
+
+		// var map = L.map('map').setView([39.74739, -105], 13);
+		// L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpandmbXliNDBjZWd2M2x6bDk3c2ZtOTkifQ._QA7i5Mpkd_m30IGElHziw',
+		//  {
+		// 			maxZoom: 18,
+		// 			attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
+		// 				'<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+		// 				'Imagery © <a href="http://mapbox.com">Mapbox</a>',
+		// 			id: 'mapbox.light'
+		// 		}).addTo(map);
+ 		
+
+ 		// $('#mySelect') .append($("<option/>") .val(key) .text(value));
+
+ 		function changeView(view){
+ 			if(state.activeView != view){
+ 				$(state.activeView + '-li').removeClass('active');
+ 				$(state.activeView + '-container').hide();
+
+ 				$(view + '-li').addClass('active');
+	 			$(view + '-container').show();
+
+	 			if(view == "#map"){
+	 				if(!state.map.refreshed){
+	 					state.map._onResize();
+	 				}
+	 			}
+
+	 			if(view == "#par"){
+	 				// redrawTable();
+	 				if($(document).height() > $(window).height()){
+	 					redrawTable();
+	 					redrawTable();
+	 				}
+	 			}
+
+	 			state.activeView = view;
+ 			}
+ 		}
+
+ 		function setActiveView(view){
+ 			$(view + '-li').addClass('active');
+ 			state.activeView = view;
+ 			$(state.activeView + '-container').show();
+ 		}
+
+ 		$(function() {
+ 			// var activeView = $('li[class*=active]').attr('id');
+ 			// state.activeView = "#" + activeView.substring(0, activeView.indexOf('-'));
+ 			// $(state.activeView + '-container').show();
+
+ 			setActiveView("#den");
+ 			// changeView("#map");
+
+ 			// $('#fileSelected').selectmenu({
+		  //   	change: function( event, data ) {
+		  //   		if(state.fileMode){
+		  //   			// removeTimeline();
+		  //   		}
+		  //   		else{
+		  //   			// console.log(data.item.value)
+		  //   			map.removeLayer(currentFile.layer);
+				// 		//console.log("changing files!!!!");
+
+						
+
+				// 		currentFile = dataArray[data.item.value];
+				// 		dataArray[data.item.value].layer.addTo(map);
+		  //   		}
+		  //       	removeTimeline();
+		  //   	}
+		  //   }).addClass( "overflow" );
+
+ 			$('#fileSelected').change(function(e) {
+	    		if(state.fileMode){
+	    			// removeTimeline();
+	    		}
+	    		else{
+	    			// console.log(data.item.value)
+	    			map.removeLayer(currentFile.layer);
+					//console.log("changing files!!!!");
+
+					
+
+					currentFile = dataArray[data.item.value];
+					dataArray[data.item.value].layer.addTo(map);
+	    		}
+	        	removeTimeline();
+	    	});
+
+		    $('#par-year-select').change(function(e) {
+				state.parCoor.year = $(this).val();
+				if(state.parCoor.filenames.length){
+					parCoor(state.parCoor.filenames, true, state.parCoor.country);
+					redrawTable();
+				}
+			})
+			$('#par-plot-select').change(function(e) {
+				state.parCoor.plot = $(this).val();
+				if(state.parCoor.plot == 1){
+					$('#par-year').hide();
+				}
+				else{
+					$('#par-year').show();
+				}
+				if(state.parCoor.filenames.length){
+					parCoor(state.parCoor.filenames, true, state.parCoor.country);
+					redrawTable();
+				}
+			})
+
+ 		});
+
+		var bounds = L.latLngBounds(L.latLng(90,180), L.latLng(-60,-180));
+		var map = L.map('map',{
+			center: [40,0],
+			zoom: 2,
+			maxBounds:bounds
+			//crs: L.CRS.EPSG4326
+		});
+
+		L.tileLayer(
+			"https://c.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+		    attribution: '&copy; ' + '<a href="https://openstreetmap.org">OpenStreetMap</a>' + ' Contributors',
+		      maxZoom: 5,
+		      minZoom: 1,
+		      tileSize: 256,
+		      noWrap: true,
+		      bounds:bounds
+		}).addTo(map);
+
+		state.map = map;
+		state.map.refreshed = false;
+
+		function openClicked(){
+		    $('#fileInput').click();
+		} 
+		function openClickedNew(){
+		    $('#fileInputNew').click();
+		} 
+
+
+		function readFile(e) {
+			state.fileMode = 0;
+			var files = e.target.files;
+			fileNames = [];
+			for (var i = 0, f; file = files[i]; i++){
+				if (!file || typeof(dataArray[file.name]) != "undefined") {
+					return;
+				}
+				var reader = new FileReader();
+				var name = file.name;
+				var visible = true;
+
+				if(fileNames.length > 0){
+					visible = false;
+				}
+
+				fileNames.push(name);
+
+				reader.name = name;
+				reader.visible = visible;
+				$('#fileSelected').append($("<option></option>").attr("value", name).text(name));
+				reader.onload = function(e) {
+					var contents = e.target.result;
+					console.log('reader.onload');
+					// console.log(contents);
+					var parsedJson = JSON.parse(contents);
+					// geoJsonArray.push(parsedJson);
+					dataArray[this.name] = {scenario: parsedJson.scenario, years: parsedJson.years};
+					// $('#fileSelected') .append($("<option/>") .val(dataArray.length) .text(value));
+					console.log('visible: ', visible);
+					loadGeoJSON(dataArray[this.name], parsedJson, this.visible);
+				};
+				reader.readAsText(file);
+			};
+			$('#file-selection').show();
+			// $('#fileSelected').selectmenu( "refresh" );
+		}
+
+		function readFileNew(e) {			
+			showLoading(true);
+
+			$('#par-controls-container').hide();
+
+			if(clusterShapefile.layer){
+				map.removeLayer(clusterShapefile.layer);
+				console.log("Should remove layer!!!!")
+			}
+
+			state.fileMode = 1;
+
+			var files = e.target.files;
+			state.geoLoaded = 0,
+			state.scenariosLoaded = 0;
+			state.scenariosProc = 0;
+			state.filesLoaded = 0;
+			state.filesCount = e.target.files.length;
+			fileNames = [];
+
+			clusterShapefile = {},
+			clusterData = {},
+			clusterQueries = [],
+			clusterKeys = {};
+
+			for (var i = 0, f; file = files[i]; i++){
+				if (!file || typeof(dataArray[file.name]) != "undefined") {
+					return;
+				}
+				var reader = new FileReader();
+				reader.fileName = file.name;
+				// var visible = !i;
+
+				// if(fileNames.length > 0){
+				// 	visible = false;
+				// }
+
+				fileNames.push(reader.fileName);
+
+				// $('#fileSelected').append($("<option></option>").attr("value", reader.fileName).text(reader.fileName));
+
+				reader.onload = function(e) {
+					var contents = e.target.result;
+					// console.log(this.fileName)
+					// console.log(contents);
+					var parsedJson = JSON.parse(contents);
+					// geoJsonArray.push(parsedJson);
+					// $('#fileSelected') .append($("<option/>") .val(dataArray.length) .text(value));
+					if( !('geo_data' in parsedJson)){
+
+						clusterShapefile = {scenario: parsedJson.scenario, years: parsedJson.years, parsedJson: parsedJson};
+						// loadNewGeoJSON(clusterShapefile, parsedJson, true);
+
+						state.filesLoaded++;
+						state.geoLoaded++;
+
+						if(state.filesLoaded == state.filesCount){
+							if(state.scenariosLoaded > 1){
+								loadingComplete();
+							}
+							else{
+								hideLoading();
+								alert("Atleast two scenario files must be uploaded!");
+							}
+						}
+					}
+					else{
+						clusterData[this.fileName] = {scenario: parsedJson.scenario, years: parsedJson.years};
+						$('#fileSelected').append($("<option></option>").attr("value", this.fileName).text(this.fileName));
+
+						loadClusterJSON(clusterData[this.fileName], parsedJson);
+						state.filesLoaded++;
+						state.scenariosLoaded++;
+
+						if(state.scenariosLoaded == 2){
+							state.years = parsedJson.years;
+							var min = d3.min(state.years);
+							state.yearsScaled = [];
+							state.years.forEach(function(n,i){state.yearsScaled.push(n - min);});
+
+							$('#par-controls-container').show();
+
+							var yearSelect = $('#par-year-select');
+							yearSelect.empty();
+							$.each(state.years, function(key, value) {   
+							    yearSelect.append($("<option/>")
+							    	.val(key)
+							    	.text(value));
+							});
+						}
+
+						if(state.filesLoaded == state.filesCount){
+							console.log("Done!!!!");							
+							
+							if(state.scenariosLoaded > 1){
+								loadingComplete();
+							}
+							else{
+								hideLoading();
+								alert("Atleast two scenario files must be uploaded!");
+							}
+						}
+					}
+				};
+				reader.readAsText(file);
+			};
+			// $('#file-selection').show();
+			// $('#fileSelected').selectmenu( "refresh" );
+		}
+
+		function loadingComplete(){
+			// socket.send('process request', {queries: clusterQueries, keys: clusterKeys, scenarios: clusterData});
+
+			
+			// processData(clusterQueries, clusterKeys, clusterData);
+
+			$('#file-selection').show();
+			// $('#fileSelected').selectmenu( "refresh" );
+
+			if(state.useServer){
+				socket.send('clusterData request', {queries: clusterQueries, keys: clusterKeys, scenarios: clusterData});
+				processDataLocal(clusterQueries, clusterKeys, clusterData);
+				loadNewGeoJSON(clusterShapefile, clusterShapefile.parsedJson, true);
+				delete clusterShapefile.parsedJson;
+			}
+			else{
+				processDataDelayed(clusterQueries, clusterKeys, clusterData);
+				loadNewGeoJSON(clusterShapefile, clusterShapefile.parsedJson, true);
+				delete clusterShapefile.parsedJson;
+			}						
+		}
+
+		function processingDone(vectors){
+			if(state.scenariosProc++ == state.scenariosLoaded - 1){
+				var labels = Object.keys(clusterData);
+				// figue.agglomerateDelayed(labels, vectors, figue.EUCLIDIAN_DISTANCE, figue.AVERAGE_LINKAGE);
+				
+				console.log('processingDone!');
+				clusters = figue.agglomerate(labels, vectors, figue.EUCLIDIAN_DISTANCE, figue.AVERAGE_LINKAGE);
+				var dendogram = clusters.buildDendogram(5, true, true, false, true);
+				var d3Cluster = buildD3Cluster(clusters);
+
+				var pre = document.getElementById('mypre') ;
+				if( document.all ) {
+					re.innerText = dendogram;
+				}
+				else {
+					pre.innerHTML = dendogram;
+				}
+
+				// buildD3Cluster(result.cluster);
+
+				zDendogram(d3Cluster);
+
+				console.log("hideLoading");
+				hideLoading();
+			}
+		}
+
+		figue.agglomerateDone =  function(result){
+			clusters = result
+			var dendogram = clusters.buildDendogram(5, true, true, false, true);
+			var d3Cluster = buildD3Cluster(clusters);
+
+			// console.log(result);
+	    	// clusters = result.clusters;
+
+			// Render the dendogram in the page (note: pre is handled differently by IE and the rest of the browsers)
+			var pre = document.getElementById('mypre') ;
+			if( document.all ) {
+				re.innerText = dendogram;
+			}
+			else {
+				pre.innerHTML = dendogram;
+			}
+
+			// buildD3Cluster(result.cluster);
+
+			zDendogram(d3Cluster);
+
+			console.log("hideLoading");
+			hideLoading();
+		}
+
+		function displayContents(contents) {
+		  var element = document.getElementById('file-content');
+		  element.innerHTML = contents;
+		}
+
+		document.getElementById('fileInput').addEventListener('change', readFile, false);
+		document.getElementById('fileInputNew').addEventListener('change', readFileNew, false);
+
+		function addParameter(parameter){
+			if(parameters.indexOf(parameter) == -1){
+				parameters.push(parameter);
+				return true;
+			}
+			return false;
+		}
+
+		function addKeys(array, keys){
+			for(var index = 0; index < keys.length; index++){
+				if(array.indexOf(keys[index]) == -1 && typeof(keys[index]) != "function"){
+					array.push(keys[index]);
+				}
+			}
+		}
+
+		function onEachFeature(feature, layer) {
+			var popupContent = "<p>I started out as a GeoJSON " +
+					feature.geometry.type + ", but now I'm a Leaflet vector!</p>";
+
+			if (feature.properties && feature.properties.popupContent) {
+				popupContent += feature.properties.popupContent;
+			}
+
+			if(feature.properties){
+				for (var parameter in feature.primary_energy) {
+					var result = addParameter(parameter);
+					if(result){
+						console.log("paramter added: " + parameter);
+						console.log(feature)
+					}
+				};
+			}
+
+			// layer.bindPopup(popupContent);
+
+			layer.on({
+		        click: appendTimeline
+		    });
+		}
+
+		function highlightFeature(e) {
+		    var layer = e.target;
+
+		    layer.setStyle({
+			    "weight": 1,
+			    "fillOpacity": 0.7
+			});
+
+		    if (!L.Browser.ie && !L.Browser.opera) {
+		        layer.bringToFront();
+		    }
+		}
+
+		function resetHighlight(e) {
+			if(!e.target.selected)
+		    	clusterShapefile.layer.resetStyle(e.target);
+		 //    e.target.setStyle({
+			// 	"color": "black",
+			// 	"fillColor": "grey",
+			//     "weight": 1,
+			//     "opacity": 0.4,
+			//     "fillOpacity": 0.2
+			// });
+		}
+
+		function onEachFeatureNew(feature, layer) {
+
+			// console.log(feature);
+
+			// if (feature.properties && feature.properties.popupContent) {
+			// 	popupContent += feature.properties.popupContent;
+			// }
+
+			// console.log(feature)
+			// if(feature.queries && feature.queries.primary_energy[0] != "#N/A"){
+			// 	for (var outerIndex in feature.queries.primary_energy) {
+			// 		var result = addParameter(feature.queries.primary_energy[outerIndex][0]);
+			// 		if(result){
+			// 			console.log("paramter added: " + feature.queries.primary_energy[outerIndex][0]);
+			// 			console.log(feature)
+			// 		}
+			// 	};
+			// }
+
+			// // layer.bindPopup(popupContent);
+
+			// layer.setStyle({
+			// 	"color": "black",
+			// 	"fillColor": "grey",
+			//     "weight": 1,
+			//     "opacity": 0.4,
+			//     "fillOpacity": 0.2
+			// });
+
+			layer.on({
+		        click: function (e) {
+		        	appendTimelineNew(e);
+
+					var layer = e.target;
+					var feature = layer.feature;
+
+		        	if(state.map.selectedLayer){
+		        		// console.log('state.map.selectedLayer: valid!');
+		        		clusterShapefile.layer.resetStyle(state.map.selectedLayer);
+		        		state.map.selectedLayer.selected = false;
+		        		// state.map.selectedLayer.setStyle({
+						//     "weight": 1,
+						//     "fillOpacity": 0.5
+						// });
+		        	}
+		        	state.map.selectedLayer = layer;
+		        	layer.selected = true;
+
+		        	layer.setStyle({
+					    "weight": 1,
+					    "fillOpacity": 0.7
+					});
+		        },
+				mouseover: highlightFeature,
+       			mouseout: resetHighlight,
+		    });
+		}
+
+		function loadGeoJSON (obj, geoJson, visible) {
+			console.log(obj.scenario);
+			obj.layer = L.geoJson(geoJson, {
+
+				filter: function (feature, layer) {
+					if (feature.properties) {
+						feature.scenario = obj.scenario
+						feature.years = obj.years
+					}
+					return true;
+				},
+				onEachFeature: onEachFeature,
+				style: {
+					"color": "black",
+					"fillColor": "grey",
+				    "weight": 1,
+				    "opacity": 0.4,
+				    "fillOpacity": 0.2
+				},
+			});
+			if(visible){
+				obj.layer.addTo(map);
+				currentFile = obj;
+			}
+		}
+
+		function getSummationColor(feature){
+			var id = feature.properties.GCAM_ID;
+
+			var fileIndex = -1;
+			fileNames.every(function(n, i){
+				if(n.indexOf('master') == -1){
+					fileIndex = i;
+					return false;
+				} 
+				return true;
+			});
+
+			if(fileIndex == -1){
+				console.log(fileNames);
+				return;
+			}
+
+			var scenarioName = fileNames[fileIndex];
+			// console.log(scenarioName)
+			var countryIndex = 0;
+
+			// console.log(clusterData[scenarioName]);
+
+			while(clusterData[scenarioName].properties[countryIndex].GCAM_ID != id){
+				countryIndex++;
+			}
+
+			var energy = clusterData[scenarioName].data['primary_energy'][countryIndex];
+
+			// console.log(layer);
+			var localParameters = d3.keys(energy);
+			var index = localParameters.indexOf("GCAM_ID");
+			if(index > -1){
+				localParameters.splice(index, 1);
+			}
+
+			var color = d3.scale.ordinal()
+			    .domain(localParameters)
+			    .range(colorbrewer.Set3[12]);
+
+			var sums = [];
+
+			for(var i = 0; i < localParameters.length; i++){
+				sums.push(
+					energy[localParameters[i]].reduce(function(a, b) {
+						return (+a) + (+b);
+					})
+				);
+				// console.log(localParameters[i], sums[sums.length-1])
+			}
+			// var max = d3.max(sums);
+			// console.log(clusterData[scenarioName].properties[countryIndex].REGION_NAME, localParameters[sums.indexOf(d3.max(sums))]);
+			return color(localParameters[sums.indexOf(d3.max(sums))]);
+		}
+
+		function layerStyle(feature) {
+		    return {
+		        fillColor: getSummationColor(feature),
+		        color: "black",
+				// fillColor: "grey",
+			    weight: 1,
+			    opacity: 0.4,
+			    fillOpacity: 0.2
+		    };
+		}
+
+		function loadNewGeoJSON (obj, geoJson, visible) {
+			console.log(obj.scenario);
+			obj.layer = L.geoJson(geoJson, {
+				onEachFeature: onEachFeatureNew,
+				style: layerStyle,
+			});
+			if(visible){
+				obj.layer.addTo(map);
+				currentFile = obj;
+			}
+		}
+
+		//File VF
+		//[country -> [primary_energies], ...]
+
+		function loadClusterJSON (obj, json) {
+			console.log(obj.scenario);
+			var features = json.features;
+
+			obj.properties = [],
+			obj.features = [],
+			obj.queries = Object.keys(features[0].queries),
+			obj.primary_energy = [],
+			obj.primary_energy_keys = [],
+			obj.data = {},
+			obj.dataKeys = {};
+
+			for(var index = 0; index < obj.queries.length; index++){
+				obj.data[obj.queries[index]] = [];
+				obj.dataKeys[obj.queries[index]] = [];
+			}
+
+			for(var featureIndex = 0;  featureIndex < features.length; featureIndex++){
+				var feature = features[featureIndex];
+
+				obj.properties.push(feature.properties);				
+				// obj.primary_energy.push(feature.queries["primary_energy"]);
+
+				for(var queryIndex in feature.queries){
+					var query = feature.queries[queryIndex]
+
+					obj.data[queryIndex].push(query);
+
+					if(Array.isArray(query)){
+						obj.dataKeys[queryIndex] = ["Array"];
+					}
+					else{
+						addKeys(obj.dataKeys[queryIndex], Object.keys(query));
+					}
+				}
+
+				// addKeys(obj.primary_energy_keys, Object.keys(feature.queries["primary_energy"]));
+			}
+
+			addKeys(clusterQueries, obj.queries);
+
+			for(var index = 0; index < obj.queries.length; index++){
+				if(!clusterKeys[obj.queries[index]])
+					clusterKeys[obj.queries[index]] = [];
+
+				addKeys(clusterKeys[obj.queries[index]], obj.dataKeys[obj.queries[index]]);
+			}
+			// console.log(obj);
+		}
+
+		/*function processData(queries, keys, scenarios){
+			var labels = Object.keys(scenarios);
+			var featureVectors = [];
+
+
+			for(var scenarioIndex in scenarios){
+				var scenarioData = scenarios[scenarioIndex].data,
+				arrayLength = scenarios[scenarioIndex].years.length,
+				vector = [];
+
+				for(var dataIndex = 0; dataIndex < scenarioData["primary_energy"].length; dataIndex++){
+
+					var queryData = scenarioData["primary_energy"][dataIndex];
+
+					for(var keyIndex = 0; keyIndex < keys["primary_energy"].length; keyIndex++){
+
+						var key = keys["primary_energy"][keyIndex];
+
+						if(!queryData[key] || queryData[key][0] == "No data"){
+							vector = vector.concat(Array.apply(null, new Array(arrayLength)).map(Number.prototype.valueOf,0));
+						}
+						else{
+							vector = vector.concat(queryData[key].slice(0,-1));
+						}
+
+					}
+				}
+
+				featureVectors.push(vector);
+			}
+			globalVector = featureVectors;
+		}*/
+
+		function processDataMain(mainObj){
+			// console.log("processDataMain!");
+
+			var stopIndex = mainObj.dataIndex + 15;
+
+			while(mainObj.dataIndex < mainObj.scenarioData["primary_energy"].length && mainObj.dataIndex < stopIndex){
+
+				var queryData = mainObj.scenarioData["primary_energy"][mainObj.dataIndex];
+
+				for(var keyIndex = 0; keyIndex < mainObj.keys["primary_energy"].length; keyIndex++){
+
+					var key = mainObj.keys["primary_energy"][keyIndex];
+
+					if(!queryData[key] || queryData[key][0] == "No data"){
+						mainObj.vector = mainObj.vector.concat(Array.apply(null, new Array(mainObj.arrayLength)).map(Number.prototype.valueOf,0));
+					}
+					else{
+						mainObj.vector = mainObj.vector.concat(queryData[key].slice(0,-1));
+					}
+
+				}
+				mainObj.dataIndex++;
+				
+			}
+			if(mainObj.dataIndex < mainObj.scenarioData["primary_energy"].length){
+				setTimeout(processDataMain.bind(null, mainObj), 50);
+				if(mainObj.dataIndex % 100){
+					progressLoadingBar();
+				}
+			}
+			else{
+				mainObj.featureVectors.push(mainObj.vector);
+				processingDone(mainObj.featureVectors);
+				return;
+			}
+		}
+
+		function processDataDelayed(queries, keys, scenarios){
+			var featureVectors = [],
+			scenarioCount = 0;
+
+			for(var scenarioIndex in scenarios){
+				var mainObj = {keys: keys};
+				mainObj.scenarioData = scenarios[scenarioIndex].data;
+				mainObj.arrayLength = scenarios[scenarioIndex].years.length;
+				mainObj.vector = [];
+				mainObj.dataIndex = 0;
+				mainObj.scenarioIndex = scenarioIndex;
+				mainObj.scenarioCount = scenarioCount;
+				mainObj.featureVectors = featureVectors;
+				console.log('scenarioIndex: ', scenarioIndex);
+
+				processDataMain(mainObj);
+
+				// featureVectors.push(mainObj.vector);
+				console.log("processDataDelayed!");
+				scenarioCount++;
+			}
+			return featureVectors;
+		}
+
+		function processDataLocal(queries, keys, scenarios){
+
+			for(var scenarioIndex in scenarios){
+				var scenarioData = scenarios[scenarioIndex].data,
+				arrayLength = scenarios[scenarioIndex].years.length,
+				dataMetrics = {primary_energy: []};
+
+				for(var dataIndex = 0; dataIndex < scenarioData["primary_energy"].length; dataIndex++){
+
+					var queryData = scenarioData["primary_energy"][dataIndex];
+					dataMetrics["primary_energy"][dataIndex] = {};
+
+					for(var keyIndex = 0; keyIndex < keys["primary_energy"].length; keyIndex++){
+
+						var key = keys["primary_energy"][keyIndex];
+						var dataMetric = "N/A";
+
+						if(!queryData[key] || queryData[key][0] == "No data"){
+							// queryData[key] = Array.apply(null, new Array(arrayLength)).map(Number.prototype.valueOf, 0);
+							queryData[key] = new Array(arrayLength).fill(0);
+						}
+						else{
+							dataMetric = queryData[key].pop();
+						}
+
+						dataMetrics["primary_energy"][dataIndex][key] = dataMetric;
+					}
+				}
+
+				scenarios[scenarioIndex]['dataMetrics'] = dataMetrics;
+				console.log(dataMetrics);
+			}
+			console.log('processDataLocal');
+		}
+		
+
+		function removeTimeline(){
+			d3.select("#info").select('svg').remove();
+		}		
+
+		function appendLegend(color){
+        	d3.select("#legend").select('svg').remove();
+
+        	var width = $("#legend").width() - 20,
+		   	height = $("#legend").height() - 50;
+
+        	var svg = d3.select("#legend").append("svg")
+			    .attr("width", width + 20)
+			    .attr("height", height + 50)
+
+			var legendRectSize = 18;
+        	var legendSpacing = 4; 
+
+			var legend = svg.selectAll('.legend')                    
+	          .data(color.domain())                                  
+	          .enter()                                               
+	          .append('g')                                           
+	          .attr('class', 'legend')                               
+	          .attr('transform', function(d, i) {                    
+	            var height = legendRectSize + legendSpacing;         
+	            // var offset =  height * color.domain().length / 2;    
+	            var horz =  legendRectSize;                      
+	            // var vert = i * height - offset;  
+	            var vert = i * height + legendSpacing + 20;                    
+	            return 'translate(' + horz + ',' + vert + ')';       
+	          });                                                    
+
+	        legend.append('rect')                                    
+	          .attr('width', legendRectSize)                         
+	          .attr('height', legendRectSize)                        
+	          .style('fill', color)                                  
+	          .style('stroke', color);                               
+	          
+	        legend.append('text')                                    
+	          .attr('x', legendRectSize + legendSpacing)             
+	          .attr('y', legendRectSize - legendSpacing)             
+	          .text(function(d) { return d; });                      
+
+		}
+
+	    // Define 'div' for tooltips
+		var div = d3.select('#info').append("div") // declare the properties for the div used for the tooltips
+		  .attr("class", "tooltip")       // apply the 'tooltip' class
+		  .style("opacity", 0);         //
+
+		function appendTimeline(e) {
+			var layer = e.target;
+			var energy =  layer.feature.primary_energy;
+			var years = layer.feature.years;
+
+			currentLayerData = energy;
+
+			// console.log(layer);
+			var localParameters = d3.keys(energy);
+
+			var margin = {top: 20, right: 20, bottom: 30, left: 30},
+		    width = $("#info").width() - margin.left - margin.right,
+		    height = $("#info").height() - margin.top - margin.bottom - 20;
+
+			var parseDate = d3.time.format("%Y").parse,
+			bisectDate = d3.bisector(function(d) { return d; }).left;
+
+			var x = d3.time.scale()
+			    .range([0, width]);
+
+			var y = d3.scale.linear()
+			    .range([height, 0]);
+
+			// var color = d3.scale.category20();
+			// color.domain(localParameters);
+
+			var color = d3.scale.ordinal()
+			    .domain(localParameters)
+			    .range(colorbrewer.Set3[12]);
+
+			var xAxis = d3.svg.axis()
+			    .scale(x)
+			    .orient("bottom");
+
+			var yAxis = d3.svg.axis()
+			    .scale(y)
+			    .orient("left");
+
+			var line = d3.svg.line()
+			    .interpolate("basis")
+			    .x(function(d, i) { return x(parseDate(years[i] + '')); })
+			    .y(function(d, i) { return y(parseFloat(d)); });
+
+			removeTimeline();
+
+			var svg = d3.select("#info").append("svg")
+			    .attr("width", width + margin.left + margin.right)
+			    .attr("height", height + margin.top + margin.bottom)
+			  .append("g")
+			    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+			// console.log(localParameters);
+
+			// console.log(years);
+			x.domain(d3.extent(years, function(d) { return parseDate(d + ''); }));
+
+			var max = 0;
+			var energies = [];
+			for (var key in energy) {
+				max = d3.max([max, d3.max(energy[key], function(d) { return +d;} )]);
+				energies.push({values: energy[key], name: key});
+				console.log(key);
+			};
+			console.log(max);
+			y.domain([0, Math.ceil(max)]);
+
+			svg.append("g")
+			.attr("class", "x axis")
+			.attr("transform", "translate(0," + height + ")")
+			.call(xAxis);
+
+			svg.append("g")
+			.attr("class", "y axis")
+			.call(yAxis)
+			.append("text")
+			.attr("transform", "rotate(-90)")
+			.attr("y", 6)
+			.attr("dy", ".71em")
+			.style("text-anchor", "end")
+			.text("Energy");
+
+			/*for (var i in energy) {
+				var g = svg.append('g')
+				.attr('class', 'energy');
+
+				var path = g.append('path')
+				.attr('d', line(energy[i]))
+				.attr("class", "line")
+				.style("stroke", function(d) { return color(i); });
+
+				path.on('mouseover', function(d) {           // NEW
+				 	console.log(d);
+				});                                          // NEW
+
+				path.on('mouseout', function(d) {            // NEW
+					console.log(d);
+				}); 
+
+				// var lastElement = parseFloat(energy[i][energy[i].length -1]);
+				// // console.log("x: " + years[years.length-1] + ", y: " + lastElement);
+
+				// g.append('text')
+				// .attr("transform", function(d) { return "translate(" + x(parseDate(years[years.length-1]+ '')) + "," + y(lastElement) + ")"; })
+				// .attr("x", 3)
+				// .attr("dy", ".35em")
+				// .text(i);
+			};*/
+
+			var energy = svg.selectAll(".energy")
+		      .data(energies)
+		    .enter().append("g")
+		      .attr("class", "energy");
+
+		  	var path = energy.append("path")
+		      .attr("class", "line")
+		      .attr("d", function(d) { return line(d.values); })
+		      .style("stroke", function(d, i) { return color(d.name); })
+		      .style("stroke-width", '2px');
+
+		 //    svg.selectAll("g.dot")
+		 //    .data(energies)
+		 //    .enter().append("g")
+		 //    .attr("class", "dot")
+		 //    .selectAll("circle")
+		 //    .data(function(d) { return d.values; })
+		 //    .enter().append("circle")
+		 //    .attr("r", 5)
+		 //    .attr("cx", function(d, i) {  return x(parseDate(years[i] + '')); })
+		 //    .attr("cy", function(d, i) { return y(parseFloat(d)); })
+
+			// // Tooltip stuff after this
+			// .on("mouseover", function(d, i) {              // when the mouse goes over a circle, do the following
+			// 	div.transition()                  // declare the transition properties to bring fade-in div
+			// 		.duration(200)                  // it shall take 200ms
+			// 		.style("opacity", .9);              // and go all the way to an opacity of .9
+			// 	div.html(d.label + "<br/>" + energies[i].name + "<br/>"  + d)  // add the text of the tooltip as html 
+			// 		.style("left", (d3.event.pageX) + "px")     // move it in the x direction 
+			// 		.style("top", (d3.event.pageY - 28) + "px");  // move it in the y direction
+			// })                          // 
+			// .on("mouseout", function(d) {             // when the mouse leaves a circle, do the following
+			// 	div.transition()                  // declare the transition properties to fade-out the div
+			// 		.duration(500)                  // it shall take 500ms
+			// 		.style("opacity", 0);             // and go all the way to an opacity of nil
+			// }); 
+
+			appendLegend(color);
+		}
+
+		function appendTimelineNew(e) {
+			var layer = e.target;
+			var feature = layer.feature;
+			// console.log(layer);
+			console.log(feature.properties.GCAM_ID);
+			var id = feature.properties.GCAM_ID;
+
+			var scenarioName = $('#fileSelected').val();
+			var countryIndex = 0;
+
+			while(clusterData[scenarioName].properties[countryIndex].GCAM_ID != id){
+				countryIndex++;
+			}
+
+			var energy =  clusterData[scenarioName].data['primary_energy'][countryIndex];
+			var years = state.years;
+
+			currentLayerData = energy;
+
+			// console.log(layer);
+			var localParameters = d3.keys(energy);
+			var index = localParameters.indexOf("GCAM_ID");
+			if(index > -1){
+				localParameters.splice(index, 1);
+			}
+
+
+			var margin = {top: 20, right: 20, bottom: 30, left: 30},
+		    width = $("#info").width() - margin.left - margin.right,
+		    height = $("#info").height() - margin.top - margin.bottom - 20;
+
+			var parseDate = d3.time.format("%Y").parse,
+			bisectDate = d3.bisector(function(d) { return d; }).left;
+
+			var x = d3.time.scale()
+			    .range([0, width]);
+
+			var y = d3.scale.linear()
+			    .range([height, 0]);
+
+			// var color = d3.scale.category20();
+			// color.domain(localParameters);
+
+			var color = d3.scale.ordinal()
+			    .domain(localParameters)
+			    .range(colorbrewer.Set3[12]);
+
+			var xAxis = d3.svg.axis()
+			    .scale(x)
+			    .orient("bottom");
+
+			var yAxis = d3.svg.axis()
+			    .scale(y)
+			    .orient("left");
+
+			var line = d3.svg.line()
+			    .interpolate("basis")
+			    .x(function(d, i) { return x(parseDate(years[i] + '')); })
+			    .y(function(d, i) { return y(parseFloat(d)); });
+
+			removeTimeline();
+
+			var svg = d3.select("#info").append("svg")
+			    .attr("width", width + margin.left + margin.right)
+			    .attr("height", height + margin.top + margin.bottom)
+			  .append("g")
+			    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+			// console.log(localParameters);
+
+			// console.log(years);
+			x.domain(d3.extent(years, function(d) { return parseDate(d + ''); }));
+
+			var max = 0;
+			var energies = [];
+			for (var key in energy) {
+				if(key != "GCAM_ID"){
+					max = d3.max([max, d3.max(energy[key], function(d) { return +d;} )]);
+					energies.push({values: energy[key], name: key});
+				}
+				// console.log(key);
+			};
+			console.log(max);
+			y.domain([0, Math.ceil(max)]);
+
+			svg.append("g")
+			.attr("class", "x axis")
+			.attr("transform", "translate(0," + height + ")")
+			.call(xAxis);
+
+			svg.append("g")
+			.attr("class", "y axis")
+			.call(yAxis)
+			.append("text")
+			.attr("transform", "rotate(-90)")
+			.attr("y", 6)
+			.attr("dy", ".71em")
+			.style("text-anchor", "end")
+			.text("Energy");
+
+			/*for (var i in energy) {
+				var g = svg.append('g')
+				.attr('class', 'energy');
+
+				var path = g.append('path')
+				.attr('d', line(energy[i]))
+				.attr("class", "line")
+				.style("stroke", function(d) { return color(i); });
+
+				path.on('mouseover', function(d) {           // NEW
+				 	console.log(d);
+				});                                          // NEW
+
+				path.on('mouseout', function(d) {            // NEW
+					console.log(d);
+				}); 
+
+				// var lastElement = parseFloat(energy[i][energy[i].length -1]);
+				// // console.log("x: " + years[years.length-1] + ", y: " + lastElement);
+
+				// g.append('text')
+				// .attr("transform", function(d) { return "translate(" + x(parseDate(years[years.length-1]+ '')) + "," + y(lastElement) + ")"; })
+				// .attr("x", 3)
+				// .attr("dy", ".35em")
+				// .text(i);
+			};*/
+
+			var energy = svg.selectAll(".energy")
+		      .data(energies)
+		    .enter().append("g")
+		      .attr("class", "energy");
+
+		  	var path = energy.append("path")
+		      .attr("class", "line")
+		      .attr("d", function(d) { return line(d.values); })
+		      .style("stroke", function(d, i) { return color(d.name); })
+		      .style("stroke-width", '2px');
+
+		 //    svg.selectAll("g.dot")
+		 //    .data(energies)
+		 //    .enter().append("g")
+		 //    .attr("class", "dot")
+		 //    .selectAll("circle")
+		 //    .data(function(d) { return d.values; })
+		 //    .enter().append("circle")
+		 //    .attr("r", 5)
+		 //    .attr("cx", function(d, i) {  return x(parseDate(years[i] + '')); })
+		 //    .attr("cy", function(d, i) { return y(parseFloat(d)); })
+
+			// // Tooltip stuff after this
+			// .on("mouseover", function(d, i) {              // when the mouse goes over a circle, do the following
+			// 	div.transition()                  // declare the transition properties to bring fade-in div
+			// 		.duration(200)                  // it shall take 200ms
+			// 		.style("opacity", .9);              // and go all the way to an opacity of .9
+			// 	div.html(d.label + "<br/>" + energies[i].name + "<br/>"  + d)  // add the text of the tooltip as html 
+			// 		.style("left", (d3.event.pageX) + "px")     // move it in the x direction 
+			// 		.style("top", (d3.event.pageY - 28) + "px");  // move it in the y direction
+			// })                          // 
+			// .on("mouseout", function(d) {             // when the mouse leaves a circle, do the following
+			// 	div.transition()                  // declare the transition properties to fade-out the div
+			// 		.duration(500)                  // it shall take 500ms
+			// 		.style("opacity", 0);             // and go all the way to an opacity of nil
+			// }); 
+
+			appendLegend(color);
+			var filename = d3.keys(clusterData).sort();
+			state.parCoor.obj = new parCoor(filename, false, {index: countryIndex, name: feature.properties.REGION_NAME});
+			redrawTable();
+		}
+
+	</script>
+</body>
+</html>

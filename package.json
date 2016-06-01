@@ -1,0 +1,16 @@
+{
+  "name": "GCAM-Electron",
+  "version": "1.0.0",
+  "description": "GCAM",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron main.js"
+  },
+  "devDependencies": {
+    "electron-prebuilt": "^1.2.0"
+  },
+  "dependencies": {
+    "d3": "^3.5.17",
+    "ml": "^0.10.0"
+  }
+}
