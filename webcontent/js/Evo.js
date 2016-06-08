@@ -1,8 +1,13 @@
-function scatter(type){
+function Evo(type, update){
+
+  if(!update){
+    $('#evo-left-container').width($('body').width()),
+    $('#evo-right-container').width(0);
+  }
 
   var margin = {top: 20, right: 20, bottom: 30, left: 40},
     padding = {top: 50,  right: 40,  bottom: 10,  left: 10},
-    width = $('#evo-container').width() - margin.left - margin.right - padding.left - padding.right,
+    width = $('#evo-left-container').width() - margin.left - margin.right - padding.left - padding.right,
     height = $('#evo-container').height() - margin.top - margin.bottom - padding.top - padding.bottom - 40;
 
   /* 
@@ -38,41 +43,45 @@ function scatter(type){
 
   // setup fill color
   var cValue = function(d, i) {
-        // console.log('i: ', i);
-        if(!type)
-          return d.class;
-        else{
-          // console.log('i: ', state.years[i]);
-          for(var index = 0; index < bins.length; index++){
-            if(bins[index].indexOf(state.years[i]) > -1){
-              // console.log('i: ', index);
-              return index;
-            }
-          }
-          return 0;
+    // console.log('i: ', i);
+    if(!type)
+      return d.class;
+    else{
+      // console.log('i: ', state.years[i]);
+      for(var index = 0; index < bins.length; index++){
+        if(bins[index].indexOf(state.years[i]) > -1){
+          // console.log('i: ', index);
+          return index;
         }
-      },
-      color = d3.scale.ordinal()
-          .domain(Array.apply(null, {length: 6}).map(Number.call, Number))
-          .range(colorbrewer.YlGnBu[9].slice(2,-1));
+      }
+      return 0;
+    }
+  },
+  color = d3.scale.ordinal()
+      .domain(Array.apply(null, {length: 6}).map(Number.call, Number))
+      .range(colorbrewer.YlGnBu[9].slice(2,-1));
 
-  $('#evo-graph-svg').remove()
+  $('#evo-graph-svg').remove();
 
   // add the graph canvas to the body of the webpage
-  var svg = d3.select("#evo-svg-container").append("svg")
+  var svg = d3.select("#evo-left-container").append("svg")
       .attr("id", "evo-graph-svg")
       .attr("width", width + margin.left + margin.right)
       .attr("height", height + margin.top + margin.bottom)
     .append("g")
       .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-  // add the tooltip area to the webpage
+  // remove the old tooltip and add a new tooltip area to the webpage
+  $("#evo-tip").remove();
   var tooltip = d3.select("body").append("div")
       .attr("class", "tooltip")
-      .style("opacity", 0);
+      .attr("id", "evo-tip")
+      .style("opacity", 0.9)
+      .style("display", "none");
 
   // load data
   var data = type;
+  this.data = type;
 
   // don't want dots overlapping axis, so add in buffer to data domain
   xScale.domain([d3.min(data, xValue)-1, d3.max(data, xValue)+1]);
@@ -137,7 +146,32 @@ function scatter(type){
     }
   }
 
-  console.log(yearInfo);
+  // console.log(yearInfo);
+
+  this.filteredData = filteredData;
+
+  this.drawLabels = function(draw){
+    if(!draw){
+      this.yearsShown = true;
+      dots.selectAll(".evo__dot__labels")
+      // d3.select("#evo-left-container").selectAll(".evo__dot__labels")
+        .data(filteredData)
+      .enter().append("text")
+        .attr("class", "evo__dot__labels")
+        .attr("transform", function(d, i){ return "translate(" + (xMap(d) + 0) + ", " + (yMap(d) - 28) + ")"})
+        // .style("left", function(d, i){ return (xMap(d) + 5) + "px"})
+        // .style("top",  function(d, i){ return (yMap(d) + 28) + "px"})
+        .style("font-weight", "bold") 
+        .text(function(d,i){return yearInfo[i].join(', ')});
+    }
+    else{
+      dots.selectAll(".evo__dot__labels").remove();
+      this.yearsShown = false;
+    }
+  }
+  // console.log('#evo-label-select', $('#evo-label-select').val());
+  if($('#evo-label-select').val() == 0)
+    this.drawLabels(0);
 
   $('.contextMenu').remove();
 
@@ -147,6 +181,38 @@ function scatter(type){
     // .style("width", "200px")
     .style("position", "absolute");
     
+  function pointClick(yearIndex, menu){
+    showLoading();
+
+    if(menu){
+      // Clear contextMenu from screen
+      $(contextMenu).empty();
+    }
+
+    // (Re)draw the scatter plot of scenarios
+    if(!state.evo.scatterDrawn){
+      state.evo.scatterDrawn = true;
+      $('#evo-left-container').width($('#evo-main-container').width()/2);
+      $('#evo-right-container').width($('#evo-main-container').width() - $('#evo-left-container').width());
+      state.evo.obj = new Evo(state.evo.obj.data, true);
+    }
+    var vectors = processScenarioYear(yearIndex);
+    scenarioYearRequest(vectors, 0);
+
+    // Redraw Parallel Coordinates Plot
+    if(+state.parCoor.plot){
+      $('#par-plot-select').val(0);
+      state.parCoor.plot = "0";
+      $('#par-year').show();
+    }
+    
+    $('#par-year-select').val(yearIndex);
+    state.parCoor.year = yearIndex;         
+    state.parCoor.obj = new parCoor(d3.keys(clusterData));
+    redrawTable();
+    // $('#par-year-select').change();
+    // changeView('#par');
+  }
 
   // draw dots
   dots.selectAll(".dot")
@@ -165,7 +231,8 @@ function scatter(type){
           if(!this.yearsShown){
             tooltip.transition()
               .duration(200)
-              .style("opacity", .9);
+              // .style("opacity", .9);
+              .style("display", "block");
             tooltip.html('<b>' + yearInfo[i].join(', ')/* + "<br/> (" + xValue(d) 
               + ", " + yValue(d) + ")"*/ + '</b>')
               .style("left", (d3.event.pageX + 5) + "px")
@@ -175,18 +242,20 @@ function scatter(type){
       .on("mouseout", function(d) {
           tooltip.transition()
                .duration(500)
-               .style("opacity", 0);
+               // .style("opacity", 0);
+               .style("display", "none");
           $(tooltip).empty();
       })
       .on("click", function(d, i){
           // If more than one year give user option to select which year to examine
           if(yearInfo[i].length == 1){
-            showLoading();
+            /*showLoading();
             $('#par-year-select').val(i);
             state.parCoor.year = i;         
             state.parCoor.obj = new parCoor(d3.keys(clusterData));
             $('#par-year-select').change();
-            changeView('#par');
+            changeView('#par');*/
+            pointClick(i);
           }
           else{
             d3.event.stopPropagation();
@@ -207,19 +276,7 @@ function scatter(type){
             $('#contextMenu').menu();
 
             $('#contextMenu').click(function(e) {
-              showLoading();
-
-              var yearIndex = state.years.indexOf(yearInfo[i][e.target.value]);
-
-              $(contextMenu).empty();
-              
-              $('#par-year-select').val(yearIndex);
-              state.parCoor.year = yearIndex;         
-              state.parCoor.obj = new parCoor(d3.keys(clusterData));
-              $('#par-year-select').change();
-              changeView('#par');
-
-              // e.stopPropagation();
+              pointClick(state.years.indexOf(yearInfo[i][e.target.value]), true);
             });
           }          
       })
@@ -268,31 +325,6 @@ function scatter(type){
           event.stopPropagation();
         });
       });*/
-
-  this.data = filteredData;
-
-  this.drawYears = function(draw){
-    if(!draw){
-      this.yearsShown = true;
-      dots.selectAll(".years")
-      // d3.select("#evo-svg-container").selectAll(".years")
-        .data(filteredData)
-      .enter().append("text")
-        .attr("class", "years")
-        .attr("transform", function(d, i){ return "translate(" + (xMap(d) + 0) + ", " + (yMap(d) - 28) + ")"})
-        // .style("left", function(d, i){ return (xMap(d) + 5) + "px"})
-        // .style("top",  function(d, i){ return (yMap(d) + 28) + "px"})
-        .style("font-weight", "bold") 
-        .text(function(d,i){return yearInfo[i].join(', ')});
-    }
-    else{
-      dots.selectAll(".years").remove();
-      this.yearsShown = false;
-    }
-  }
-  console.log('#evo-year-select', $('#evo-year-select').val());
-  if($('#evo-year-select').val() == 0)
-    this.drawYears(0);
 
   /*$.contextMenu({
     selector: '.dot', 
@@ -404,12 +436,30 @@ function evoLegend(){
 $(document).ready(function(){
   $('body').on('click', function(){
     $('.contextMenu').empty();
+  });
+
+  $('#evo-main-container').height($('body').height()-40);
+
+  $('.pane').resizable({
+    maxWidth: $('body').width()
+  });
+
+  $('#evo-left-container').on('resize', function(event, ui){
+    $('#evo-right-container').width($('#evo-main-container').width() - ui.size.width);
   })
+  .on( "resizestart", function( event, ui ) {$( '.pane svg' ).remove()})
+  .on( "resizestop", function( event, ui ) {
+    if(ui.size.width > 200)
+      state.evo.obj = new Evo(state.evo.obj.data, true);
+    if($('#evo-right-container').width() > 200 && state.evo.scatterDrawn)
+      state.evo.scatterPlot = new ScatterPlot(state.evo.scatterData);
+  });
 })
 
 $( window ).load(function() {
   $('#evo-cluster-select').change(function(e) {
     state.evo.pcaMode = +$(this).val();
+    state.evo.scatterDrawn = false;
 
     if(state.evo.pcaMode == 3)
       state.evo.mode = 1;
@@ -419,8 +469,9 @@ $( window ).load(function() {
     yearlyClusterRequest(null, null, null, 0);
   });
 
-  $('#evo-year-select').change(function(e) {
-    state.evo.obj.drawYears(+$(this).val());
+  $('#evo-label-select').change(function(e) {
+    state.evo.obj.drawLabels(+$(this).val());
+    state.evo.scatterPlot.drawLabels(+$(this).val());
   });
 
   evoLegend();
