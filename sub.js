@@ -11,6 +11,9 @@ process.on('message', (m) => {
       case 'yearly cluster request':
         processYearlyClusterReq(m.data);
         break;
+      case 'scenario year request':
+        processScenarioYearReq(m.data);
+        break;
     }
   }
 });
@@ -20,6 +23,8 @@ process.send('connected');
 const figue = require('./lib/figue');
 const ML = require('ml');
 const d3 = require('d3');
+const PythonShell = require('python-shell');
+const fs = require('fs');
 
 function processClusterDataReq(data){
   process.send('processClusterDataReq');
@@ -102,6 +107,10 @@ function processYearlyClusterReq(data){
     pythonPCA(data.pythonMode, yearVectors, data.pcaMode > 2, process);
   }
   return;
+}
+
+function processScenarioYearReq(data){
+  process.send({reqType: 'scenario year response', data: pythonPCA(0, data, false)});
 }
 
 process.on('process data request', function(index){
@@ -212,8 +221,8 @@ function processData(queries, keys, scenarios){
   var labels = d3.keys(scenarios).sort();
   var featureVectors = new Array(labels.length),
   featureVectorCount = 0;
-
-  console.log('processData BEGIN: ', (new Date()).toUTCString());
+  // process.send('labels: ' + labels.join(', '));
+  process.send('processData BEGIN: ' + (new Date()).toUTCString());
   for(var si = 0; si < labels.length; si++){
     var scenarioIndex = labels[si];
     var scenarioData = scenarios[scenarioIndex].data,
@@ -242,7 +251,7 @@ function processData(queries, keys, scenarios){
     featureVectors[featureVectorCount] = vector;
     featureVectorCount++;
   }
-  console.log('processData END: ', (new Date()).toUTCString())
+  process.send('processData END: ' + (new Date()).toUTCString())
   return featureVectors;
 }
 
@@ -403,12 +412,12 @@ function getScenarioDetailsV2(tree){
 }
 
 function PCA(vectors, dims){
-  var U = new ML.Stat.PCA(vectors)
+  var U = new ML.Stat.PCA(vectors);
   var V = U.project(vectors, dims);
   return V;
 }
 
-function pythonPCA(mode, data, useFile, process){
+function pythonPCA(mode, data, useFile){
   // console.log(JSON.stringify(data));
   var options = {
     args: [mode]
@@ -429,7 +438,7 @@ function pythonPCA(mode, data, useFile, process){
     // console.log(results);
     var output = JSON.parse(results[0]);
     // console.log('output parsed: ', output);
-    process.sender.send('yearly cluster response', output);
+    process.send({reqType: 'yearly cluster response', data: output});
 
     console.log('yearly cluster response', (new Date()).toUTCString())
   });

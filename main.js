@@ -6,6 +6,8 @@ const BrowserWindow = electron.BrowserWindow
 // Module to communicate between processes
 const socket = require('electron').ipcMain
 
+const d3 = require('d3');
+
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow
@@ -13,6 +15,9 @@ let mainWindow
 function createWindow () {
   // Create the browser window.
   mainWindow = new BrowserWindow({width: 800, height: 600})
+
+  // Hide the default menu
+  // mainWindow.setMenu(null);
 
   // Maximize the browser window
   mainWindow.maximize()
@@ -74,14 +79,58 @@ child.on('message', (m) => {
   }
 });
 
-socket.on('clusterData request', function(event, data){
-  child.send({reqType: 'clusterData request', data: data});
+child.on('error', function (err) {
+  console.log('Error happened in child.');
 });
 
-socket.on('yearly cluster request', function(event, data){
-  child.send({reqType: 'yearly cluster request', data: data});
+child.on('exit', function(code, signal){
+  console.log('Child exited with code ' + code);
+})
+
+socket.on('clusterData request', function(event, req){
+  child.send({reqType: 'clusterData request', data: req});
+});
+
+socket.on('yearly cluster request', function(event, req){
+  child.send({reqType: 'yearly cluster request', data: req});
+});
+
+socket.on('scenario year request', function(event, req){
+  pythonPCA(req.mode, req.data);
 });
 
 socket.on('process data request', function(event, data){
   child.send({reqType:'process data request', data: data});
 })
+
+const PythonShell = require('python-shell');
+const fs = require('fs');
+
+function pythonPCA(mode, data){
+  // console.log(JSON.stringify(data));
+  writeData('large.txt', JSON.stringify(data));
+  var options = {
+    args: [mode, 'data/large.txt', true]
+  };
+
+  PythonShell.run('python/pca.py', options, function (err, results) {
+    if (err) throw err;
+    // results is an array consisting of messages collected during execution
+    // console.log(results);
+    var output = JSON.parse(results[0]);
+    // console.log('output parsed: ', output);
+    mainWindow.webContents.send('scenario year response', output);
+
+    console.log('scenario year response', (new Date()).toUTCString())
+  });
+}
+
+function writeData(filname, data){  
+  fs.writeFile("data/" + filname, data, function(err) {
+      if(err) {
+          return console.log(err);
+      }
+
+      console.log("The file was saved!");
+  }); 
+}
