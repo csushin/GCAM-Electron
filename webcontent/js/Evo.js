@@ -196,6 +196,8 @@ function Evo(type, update){
       $('#evo-right-container').width($('#evo-main-container').width() - $('#evo-left-container').width());
       state.evo.obj = new Evo(state.evo.obj.data, true);
     }
+
+    // processScenarioYear in Process.js loop through vectors and generate scenario vectors for specified year
     var vectors = processScenarioYear(yearIndex);
     scenarioYearRequest(vectors, 0);
 

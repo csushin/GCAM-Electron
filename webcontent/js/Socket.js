@@ -1,5 +1,27 @@
 const socket = require('electron').ipcRenderer;
 
+// Socket Requests (Outgoing)
+function scenarioYearRequest(scenarioVectors, mode, delay){
+	console.log('scenario year request', new Date(), ', mode: ', mode);
+	socket.send('scenario year request', {data: scenarioVectors, mode: !mode ? 0 : mode});
+	setTimeout(showLoading, !delay ? 1000 : delay);
+}
+
+function yearlyClusterRequest(mode, pcaMode, pythonMode, delay){
+	console.log('yearly cluster request', new Date());
+	socket.send('yearly cluster request', {
+		queries: clusterQueries,
+		keys: clusterKeys,
+		scenarios: clusterData,
+		mode: !mode ? state.evo.mode : mode,
+		pcaMode: !pcaMode ? state.evo.pcaMode : pcaMode,
+		pythonMode: !pythonMode ? state.evo.pythonMode : pythonMode,
+	});
+	setTimeout(showLoading, !delay ? 1000 : delay);
+}
+
+
+// Socket.on (incoming from main.js)
 socket.on('console', function (event, args, optional) {
 	console.log(args, optional)
 })
@@ -20,7 +42,9 @@ socket.on('progress update', function(event, progress){
 socket.on('cluster response', function(event, result){
 	console.log('cluster response', new Date())
 	yearlyClusterRequest();
-	clusters = result.clusters;
+
+	// Commented out to see if it's causing the hiccup
+	// clusters = result.clusters;
 
 	// Render the dendogram in the page (note: pre is handled differently by IE and the rest of the browsers)
 	var pre = document.getElementById('mypre') ;
@@ -32,7 +56,8 @@ socket.on('cluster response', function(event, result){
 	}
 
 	zDendogram(result.d3Cluster);
-
+	globalD3Cluster = result.d3Cluster;
+	state.den.data = result.d3Cluster;
 	hideLoading();			
 });
 

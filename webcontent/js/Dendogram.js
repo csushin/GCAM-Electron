@@ -1,172 +1,3 @@
-function dendogram(cluster) {
-	var margin = {
-			top: 20,
-			right: 120,
-			bottom: 20,
-			left: 120
-		},
-		width = 960 - margin.right - margin.left,
-		height = 500 - margin.top - margin.bottom;
-
-	var i = 0,
-		duration = 750,
-		root;
-
-	var tree = d3.layout.tree()
-		.size([height, width]);
-
-	var diagonal = d3.svg.diagonal()
-		.projection(function(d) {
-			return [d.y, d.x];
-		});
-
-	var svg = d3.select("body").append("svg")
-		.attr("width", width + margin.right + margin.left)
-		.attr("height", height + margin.top + margin.bottom)
-		.append("g")
-		.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-	root = cluster;
-	root.x0 = 0;
-	root.y0 = 0;
-
-	update(root);
-
-	d3.select(self.frameElement).style("height", "500px");
-
-	function update(source) {
-
-		// Compute the new tree layout.
-		var nodes = tree.nodes(root).reverse(),
-			links = tree.links(nodes);
-
-		// Normalize for fixed-depth.
-		nodes.forEach(function(d) {
-			d.y = d.depth * 180;
-		});
-
-		// Update the nodes…
-		var node = svg.selectAll("g.node")
-			.data(nodes, function(d) {
-				return d.id || (d.id = ++i);
-			});
-
-		// Enter any new nodes at the parent's previous position.
-		var nodeEnter = node.enter().append("g")
-			.attr("class", "node")
-			.attr("transform", function(d) {
-				return "translate(" + source.y0 + "," + source.x0 + ")";
-			})
-			.on("click", click);
-
-		nodeEnter.append("circle")
-			.attr("r", 1e-6)
-			.style("fill", function(d) {
-				return d._children ? "lightsteelblue" : "#fff";
-			});
-
-		nodeEnter.append("text")
-			.attr("x", function(d) {
-				return d.children || d._children ? -13 : 13;
-			})
-			.attr("dy", ".35em")
-			.attr("text-anchor", function(d) {
-				return d.children || d._children ? "end" : "start";
-			})
-			.text(function(d) {
-				return d.name;
-			})
-			.style("fill-opacity", 1e-6);
-
-		// Transition nodes to their new position.
-		var nodeUpdate = node.transition()
-			.duration(duration)
-			.attr("transform", function(d) {
-				return "translate(" + d.y + "," + d.x + ")";
-			});
-
-		nodeUpdate.select("circle")
-			.attr("r", 10)
-			.style("fill", function(d) {
-				return d._children ? "lightsteelblue" : "#fff";
-			});
-
-		nodeUpdate.select("text")
-			.style("fill-opacity", 1);
-
-		// Transition exiting nodes to the parent's new position.
-		var nodeExit = node.exit().transition()
-			.duration(duration)
-			.attr("transform", function(d) {
-				return "translate(" + source.y + "," + source.x + ")";
-			})
-			.remove();
-
-		nodeExit.select("circle")
-			.attr("r", 1e-6);
-
-		nodeExit.select("text")
-			.style("fill-opacity", 1e-6);
-
-		// Update the links…
-		var link = svg.selectAll("path.link")
-			.data(links, function(d) {
-				return d.target.id;
-			});
-
-		// Enter any new links at the parent's previous position.
-		link.enter().insert("path", "g")
-			.attr("class", "link")
-			.attr("d", function(d) {
-				var o = {
-					x: source.x0,
-					y: source.y0
-				};
-				return diagonal({
-					source: o,
-					target: o
-				});
-			});
-
-		// Transition links to their new position.
-		link.transition()
-			.duration(duration)
-			.attr("d", diagonal);
-
-		// Transition exiting nodes to the parent's new position.
-		link.exit().transition()
-			.duration(duration)
-			.attr("d", function(d) {
-				var o = {
-					x: source.x,
-					y: source.y
-				};
-				return diagonal({
-					source: o,
-					target: o
-				});
-			})
-			.remove();
-
-		// Stash the old positions for transition.
-		nodes.forEach(function(d) {
-			d.x0 = d.x;
-			d.y0 = d.y;
-		});
-	}
-
-	// Toggle children on click.
-	function click(d) {
-		if (d.children) {
-			d._children = d.children;
-			d.children = null;
-		} else {
-			d.children = d._children;
-			d._children = null;
-		}
-		update(d);
-	}
-}
 
 function getAllChildren(childList, node){
 	node.children.forEach(function(child){
@@ -203,6 +34,8 @@ function zDendogram(cluster) {
 
 	$('#den-container').empty();
 
+	$('#den-container').append('<a href="#" onclick="dendogramLegend()" style="display: block;">Legend</a>');
+
 	var svg = d3.select("#den-container").append("svg")
 		.attr("name", 'dendro')
 		.attr("width", width)
@@ -211,9 +44,17 @@ function zDendogram(cluster) {
 		.append("g")
 		.attr("transform", "translate(40,40)");
 
+	var colors = d3.scale.ordinal()
+	    .domain(d3.keys(cluster.inputs))
+	    .range(colorbrewer.Set3[12]);
+
+	state.den.colors = colors;
+
 	update(cluster);
 
 	d3.select(self.frameElement).style("height", height + "px");
+
+
 
 
 	function updatelinks(links) {
@@ -257,111 +98,31 @@ function zDendogram(cluster) {
 			})
 			.attr("class", "node")
 			.on("click", function(d) {
-				showLoading();
+				showLoading(true);
 				var filename = [];
+				// console.log('d: ', d);
+
 				if (d.hasOwnProperty('name') && !d.hasOwnProperty('children')) {
-					//add pcp function here
 					filename = d.name;
-					console.log('filename: ' + filename);
-					state.parCoor.obj = new parCoor([filename]);
-					changeView('#par');
-					redrawTable();
-					
-					// basinflags = [];
-					// drawPCP(filename);
-					// $('#modelname').text('selected model: ' + d.name);
+					changeView('#par', function(){
+						state.parCoor.obj = new parCoor([filename]);
+					});
 				}
 				else if(d.hasOwnProperty('children') && d.children.every(function(child){filename.push(child.name); return !child.hasOwnProperty('children');})){
-					state.parCoor.obj = new parCoor(filename);
-					changeView('#par');
-					redrawTable();
+					changeView('#par', function(){
+						state.parCoor.obj = new parCoor(filename);
+					});
 				}
 				else{
 					filename = [];
 					getAllChildren(filename, d);
 					filename.sort();
-					state.parCoor.obj = new parCoor(filename);
-					changeView('#par');
-					redrawTable();
+					
+					changeView('#par', function(){
+						state.parCoor.obj = new parCoor(filename);
+					});
 				}
 			});
-		/*.on("click", function(d){
-					  if(d.hasOwnProperty('name')&&!d.hasOwnProperty('children')){
-						  //add pcp function here
-						  filename=d.name;
-						basinflags=[];
-						  drawPCP(filename);
-						  $('#modelname').text('selected model: '+d.name);
-					  }
-					  else{
-						  if(highlightednode){
-							  d3.select(highlightednode).select('circle').transition()
-								  		.attr('r',circleR)
-								  		.duration(1000);
-							  nodes[parseInt(highlightednode.id)-1].R=circleR;
-							  
-							  d3.select(this).select('circle').transition()
-							  		.attr('r',2*circleR)
-							  		.duration(1000);
-							  highlightednode=this;
-							  //update link
-	//								  var link=svg.selectAll("path.link");
-						  }
-						  else{
-							  d3.select(this).select('circle').transition()
-						  		.attr('r',2*circleR)
-						  		.duration(1000);
-							highlightednode=this;
-						  }
-						  nodes[parseInt(highlightednode.id)-1].R=2*circleR;
-						  links = cluster1.links(nodes);
-						  updatelinks(links);
-						  filteredNames=[];
-						  filteredNames=treeTravesal(d);
-						  var threshold=parseFloat($('#threshold').val()).toFixed(2);
-						  drawTimeline('basin_water_scarcity','average',threshold,filteredNames);
-						  
-						  d3.select('#pcptooltip').remove();
-							// Define 'div' for tooltips
-							var div = d3.select("body")
-								.append("div")  // declare the tooltip div 
-								.attr("id","pcptooltip")
-								.attr("class", "tooltip")              // apply the 'tooltip' class
-								.style('height', '450px')
-								.style('width', function(){
-									return Math.min(650,$( window ).width()*0.3)+'px';
-								})
-								.style('overflow', 'scroll')
-								.style('pointer-events', 'all')
-								.style('background', 'white')
-								.style("opacity", 0);                  // set the opacity to nil
-	//					    	  console.log(txt);
-				            div.transition()
-							.duration(500)	
-							.style("opacity", 0);
-				            
-				           div.transition()
-							.duration(200)	
-							.style("opacity", .9);	
-				           
-				           var txt='';
-				           
-				           for(var i=0;i<filteredNames.length;i++){
-								  txt+=drawSubPCP(filteredNames[i]);
-							  }
-				           
-				           div.html(txt)	 
-							.style("left", (d3.event.pageX) + "px")			 
-							.style("top", (d3.event.pageY - 28) + "px");
-				           
-				           d3.select('#pcptooltip').on('click',function(){
-				        	   d3.select('#pcptooltip').remove();
-				           });
-				        
-					  }
-				  });*/
-		// .on("click", click);
-
 
 		nodeEnter.append("circle")
 			.attr("r", circleR)
@@ -369,8 +130,13 @@ function zDendogram(cluster) {
 			.style("stroke", function(d) {
 				return d._children ? "lightsteelblue" : d.color;
 			})
-			.style('fill', function(d) {
-				return d.color;
+			.style('fill', function(d, i) {
+				// console.log(i, d);
+				var color;
+				if(d.maxType){
+					color = colors(d.maxType);
+				}
+				return color;
 			});
 
 		nodeEnter.append("text")
@@ -400,7 +166,11 @@ function zDendogram(cluster) {
 				return d._children ? "lightsteelblue" : d.color;
 			})
 			.style('fill', function(d) {
-				return d.color;
+				var color;
+				if(d.maxType){
+					color = colors(d.maxType);
+				}
+				return color;
 			});
 
 		nodeUpdate.select("text")
@@ -474,83 +244,52 @@ function zDendogram(cluster) {
 	}
 }
 
-function dendogram2(cluster) {
-	var width = 960,
-		height = 500;
+function dendogramLegend(){
+	if(state.den.colors == null)
+		return;
 
-	var tree = d3.layout.tree()
-		.size([width - 20, height - 20]);
+	var color = state.den.colors;
+	var legendRectSize = 18;
+	var legendSpacing = 4;
+	var lineHeight = legendRectSize + legendSpacing;
+	var height = color.domain().length * lineHeight + legendSpacing + 20;
 
-	var root = cluster,
-		nodes = tree(root);
-
-	root.parent = root;
-	root.px = root.x;
-	root.py = root.y;
-
-	var diagonal = d3.svg.diagonal();
-
-	$("#den-container").empty();
-
-	var svg = d3.select("#den-container").append("svg")
-		.attr("width", width)
-		.attr("height", height)
-		.append("g")
-		.attr("transform", "translate(10,10)");
-
-	var node = svg.selectAll(".node"),
-		link = svg.selectAll(".link");
-
-	function update(cluster) {
-
-		// Add a new node to a random parent.
-
-		// Recompute the layout and data join.
-		node = node.data(tree.nodes(root), function(d) {
-			return d.id;
+	if($('#dialog-legend-div').length == 0){
+		$('body').append('<div id="dialog-legend" title="Legend"><div id="dialog-legend-div" style="width:' + ($('body').width() * .2) + ';height:' + height +';">');
+		$( "#dialog-legend" ).dialog({
+			autoOpen: false
 		});
-		link = link.data(tree.links(nodes), function(d) {
-			return d.source.id + "-" + d.target.id;
-		});
-
-		// Add entering nodes in the parent’s old position.
-		node.enter().append("circle")
-			.attr("class", "node")
-			.attr("r", 4)
-			.attr("cx", function(d) {
-				return d.parent.px;
-			})
-			.attr("cy", function(d) {
-				return d.parent.py;
-			});
-
-		// Add entering links in the parent’s old position.
-		link.enter().insert("path", ".node")
-			.attr("class", "link")
-			.attr("d", function(d) {
-				var o = {
-					x: d.source.px,
-					y: d.source.py
-				};
-				return diagonal({
-					source: o,
-					target: o
-				});
-			});
-
-		// Transition nodes and links to their new positions.
-		var t = svg.transition()
-			.duration(duration);
-
-		t.selectAll(".link")
-			.attr("d", diagonal);
-
-		t.selectAll(".node")
-			.attr("cx", function(d) {
-				return d.px = d.x;
-			})
-			.attr("cy", function(d) {
-				return d.py = d.y;
-			});
 	}
+	$("#dialog-legend-div").empty();
+
+	var svg = d3.select("#dialog-legend-div").append("svg")
+	    .attr("width", ($('body').width() * .2))
+	    .attr("height", height);
+
+	var legend = svg.selectAll('.legend')                    
+      .data(color.domain())                                  
+      .enter()                                               
+      .append('g')                                           
+      .attr('class', 'legend')                               
+      .attr('transform', function(d, i) {                    
+        var height = legendRectSize + legendSpacing;         
+        // var offset =  height * color.domain().length / 2;    
+        var horz =  legendRectSize;                      
+        // var vert = i * height - offset;  
+        var vert = i * height + legendSpacing + 20;                    
+        return 'translate(' + horz + ',' + vert + ')';       
+      });                                                    
+
+    legend.append('rect')                                    
+      .attr('width', legendRectSize)                         
+      .attr('height', legendRectSize)                        
+      .style('fill', color)                                  
+      .style('stroke', color);                               
+      
+    legend.append('text')                                    
+      .attr('x', legendRectSize + legendSpacing)             
+      .attr('y', legendRectSize - legendSpacing)             
+      .text(function(d) { return d; });
+
+    $( "#dialog-legend" ).dialog("open");
 }

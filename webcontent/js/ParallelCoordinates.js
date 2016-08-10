@@ -24,10 +24,9 @@ function linearRegression(y, x){
 }
 
 function parCoor(filenames, update, country) {
-
 	var self = this;
 
-	state.parCoor.filenames = filenames;
+	state.parCoor.filenames = filenames.slice();
 	state.parCoor.country = country;
 
 	var filename = filenames[0];
@@ -36,11 +35,10 @@ function parCoor(filenames, update, country) {
 
 	var title = filename.split('.geojson')[0];
 
-	var countryIndex;
 	if(country){
-	 	countryIndex = country.index;
 	 	title = country.name + ': ' + title;
-	 }
+	 	console.log(country, country.index);
+	}
 
 	var margin = {
 			top: 30,
@@ -49,7 +47,7 @@ function parCoor(filenames, update, country) {
 			left: 10
 		},
 		padding = {
-			top: 50,
+			top: 10,
 			right: 10,
 			bottom: 10,
 			left: 10
@@ -57,14 +55,14 @@ function parCoor(filenames, update, country) {
 		width = $("#par-container").width() - margin.left - margin.right - padding.left - padding.right,
 		height = $("#par-container").height() * state.sizes.parCoor.main.height * 0.6 - margin.top - margin.bottom - padding.top - padding.bottom;
 
-	if(!state.resize && update){
+	/*if(!state.resize && update){
 		width = state.sizes.parCoor.main.mWidth;
 		height = state.sizes.parCoor.main.mHeight;
 	}
 	else{
 		state.sizes.parCoor.main.mWidth = width;
 		state.sizes.parCoor.main.mHeight = height;
-	}
+	}*/
 
 	// console.log("width, height: ", $("#par-container").width(), ', ', $("#par-container").height());
 
@@ -78,195 +76,17 @@ function parCoor(filenames, update, country) {
 		background,
 		foreground;
 
-	if(!update){
-		// var yearSelect = $('#par-year-select');
-		// yearSelect.empty();
-		// $.each(clusterData[filename].years, function(key, value) {   
-		//     yearSelect.append($("<option/>")
-		//     	.val(key)
-		//     	.text(value));
-		// });
-
+	/*if(!update){
 		width = $("#par-container").width() - margin.left - margin.right - padding.left - padding.right,
 		height = $("#par-container").height() * state.sizes.parCoor.main.height * 0.6 - margin.top - margin.bottom - padding.top - padding.bottom;
-	}
+	}*/
 	d3.select("#par-svg-container").select("svg").remove();
 
 	var svg = d3.select("#par-svg-container").append("svg")
 		.attr("width", width + margin.left + margin.right)
 		.attr("height", height + margin.top + margin.bottom)
 		.append("g")
-		.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-	var pcData = clusterData[filename].data['primary_energy'],
-	idMode = 0,
-	dataMode = 0;
-	if(typeof(countryIndex) != "undefined"){
-		idMode = 1,
-		dataMode = 1,
-		pcData = [];
-
-		// Loop through the countries
-		for(var pIndex = 0; pIndex < filenames.length; pIndex++){
-			var name = filenames[pIndex],
-			obj = {
-				name: name.split('.geojson')[0],
-				scenario: clusterData[name].scenario,
-			};
-			console.log('scenario: ', obj.scenario);
-			// obj = {}
-			var dataItem = clusterData[name].data['primary_energy'][countryIndex];
-
-			//Loop through the energy types
-			for(var key in dataItem){
-				if(type != 'GCAM_ID'){
-					if(state.parCoor.plot == "0"){
-						if(typeof(obj[key]) == "undefined")
-							obj[key] = 0;
-
-						// Begin to do 'All' year selector
-						if(state.parCoor.year == -1){
-							obj[key] = d3.sum(dataItem[key])
-
-							if(key == 'crude oil' && obj.name == 'scenario0')
-								console.log('inside woot');
-						} else{
-							obj[key] = +dataItem[key][state.parCoor.year];
-						}
-					}
-					else{
-						if(typeof(obj[key]) == "undefined")
-							obj[key] = [];
-						for(var yearIndex = 0; yearIndex < dataItem[key].length; yearIndex++){
-							if(typeof(obj[key][yearIndex]) == "undefined")
-								obj[key][yearIndex] = 0;
-
-							obj[key][yearIndex] += +dataItem[key][yearIndex];
-						}
-					}
-				}
-			}
-			pcData[pIndex] = obj;
-
-			if(pIndex)
-				title += " vs " + obj.name;
-		}
-	}
-	else if(filenames.length == 2){
-		var filename2 = filenames[1];
-		pcData = [],
-		dataMode = 1;
-		var d1 = clusterData[filename].data['primary_energy'],
-			d2 = clusterData[filename2].data['primary_energy'];
-
-		// Loop through the countries
-		for(var pIndex = 0; pIndex < d1.length; pIndex++){
-			pcData[pIndex] = {};
-
-			//Loop through the energy types
-			for(var type in d1[pIndex]){
-				if(type != 'GCAM_ID'){
-					if(state.parCoor.plot == "0"){
-						// Begin to do 'All' year selector
-						if(state.parCoor.year == -1){
-							var d1Sum = d3.sum(d1[pIndex][type]),
-							d2Sum = d3.sum(d2[pIndex][type]);
-
-							var max = d3.max([d1Sum, d2Sum]);
-							var scale = d3.scale.linear().domain([-max, max]).range([-1,1]);
-							pcData[pIndex][type] = scale((+d1Sum) - (+d2Sum));
-						} else{
-							/*console.log(pIndex, type)
-							if(d1[pIndex])
-								console.log(d1[pIndex][type] ? d1[pIndex][type].length : d1[pIndex])
-							else{
-								console.log('no d1');
-							}
-
-							if(d2[pIndex])
-								console.log(d2[pIndex][type] ? d2[pIndex][type].length : d2[pIndex])
-							else{
-								console.log('no d2');
-							}*/
-
-							var max = d3.max([(+d1[pIndex][type][state.parCoor.year]), (+d2[pIndex][type][state.parCoor.year])]);
-							var scale = d3.scale.linear().domain([-max, max]).range([-1,1]);
-							pcData[pIndex][type] = scale((+d1[pIndex][type][state.parCoor.year]) - (+d2[pIndex][type][state.parCoor.year]));
-						}
-					}
-					else{
-						var yearCount = d1[pIndex][type].length;
-						pcData[pIndex][type] = new Array(yearCount);
-						for(var yearIndex = 0; yearIndex < yearCount; yearIndex++){
-							var max = d3.max([(+d1[pIndex][type][yearIndex]), (+d2[pIndex][type][yearIndex])]);
-							var scale = d3.scale.linear().domain([-max, max]).range([-1,1]);
-							pcData[pIndex][type][yearIndex] = scale((+d1[pIndex][type][yearIndex]) - (+d2[pIndex][type][yearIndex]));
-						}
-					}
-				}
-			}
-		}
-		title += " vs " + filename2.split('.geojson')[0];
-		// console.log(d1, d2, pcData);
-	}
-	else if(filenames.length > 2){
-		idMode = 1,
-		pcData = [],
-		dataMode = 1;
-		for(var pIndex = 0; pIndex < filenames.length; pIndex++){
-			var name = filenames[pIndex],
-			obj = {
-				name: name.split('.geojson')[0],
-				scenario: clusterData[name].scenario,
-			};
-			console.log('scenario: ', obj.scenario);
-			// obj = {}
-			var dataObject = clusterData[name].data['primary_energy'];
-			// console.log(name, ': ', dataObject);
-
-			// Loop through the countries
-			for(var dIndex = 0; dIndex < dataObject.length; dIndex++){
-				var dataItem = dataObject[dIndex];
-
-				//Loop through the energy types
-				for(var key in dataItem){
-					if(type != 'GCAM_ID'){
-						if(state.parCoor.plot == "0"){
-							if(typeof(obj[key]) == "undefined")
-								obj[key] = 0;
-
-							// Begin to do 'All' year selector
-							if(state.parCoor.year == "-1"){
-								obj[key] += d3.sum(dataItem[key]);
-							}
-							else{
-								obj[key]+= +dataItem[key][state.parCoor.year];
-							}
-						}
-						else{
-							if(typeof(obj[key]) == "undefined")
-								obj[key] = [];
-
-							for(var yearIndex = 0; yearIndex < dataItem[key].length; yearIndex++){
-								if(typeof(obj[key][yearIndex]) == "undefined")
-									obj[key][yearIndex] = 0;
-
-								obj[key][yearIndex] += +dataItem[key][yearIndex];
-							}
-						}
-					}
-				}
-			}
-			pcData[pIndex] = obj;
-
-			if(pIndex)
-				title += " vs " + obj.name;
-		}
-	}
-
-	$('#par-title label').html(title);
-
-	var tableData = [];
+		.attr("transform", "translate(" + margin.left + "," + margin.top + ")");	
 
 	var continents = {
 		"Africa": [],
@@ -282,143 +102,335 @@ function parCoor(filenames, update, country) {
 	    .domain(d3.keys(continents))
 	    .range(colorbrewer.Set1[7]);
 
-	var dedup = [0],
+	/*var dedup = [0],
 	dedupData = [],
-	tableIndex = 0;
+	tableIndex = 0;*/
 
 	// console.log("pcData: ", pcData.length);
-	if(filenames.length < 3 && typeof(countryIndex) == "undefined"){
-		pcData.forEach(function(p, i){
-			var gcamID = clusterData[filename]['properties'][i].GCAM_ID;
-			if(dedup.indexOf(gcamID) == -1){
-				dedupData.push(p);
-				dedup.push(gcamID);
-				tableData[tableIndex] = [
-					gcamID,
-					clusterData[filename]['properties'][i].REGION_NAME
-					// clusterData[filename]['properties'][i].Area
-				];
-				tableIndex++;
-				p.GCAM_ID = gcamID;
-				// console.log("pushing: " + gcamID);
-			}
-			else{
-				// console.log("skipped: ", gcamID, ", ", dedup);
+	var pcData = clusterData[filename].data,
+	scenarioData = clusterData[filename],
+	idMode = 0,
+	dataMode = 1;
+
+	var tableData = new Array();
+
+	if(filenames.length == 1 && typeof(country) == "undefined"){
+		// console.log('filenames.length == 1: ', filenames);
+
+		scenarioData["properties"].forEach(function(obj, i){
+			if(scenarioData["hasData"][i]){
+				tableData.push([
+					scenarioData["ids"][i],
+					obj.REGION_NAME
+				]);
 			}
 		});
-		pcData = dedupData;
 	}
-	// console.log("dedup: ", pcData.length);
+	else if(filenames.length > 2 || typeof(country) != "undefined" || (filenames.length == 2 && state.parCoor.plot == "1")){
+		// console.log('filenames.length > 2: ', filenames);
 
-	// console.log('pcData: ', pcData);
-	// Insert Summation protocol for all year selector!
-	dedupData = [];
-	// Extract the list of dimensions and create a scale for each.
-	x.domain(dimensions = d3.keys(pcData[0]).filter(function(d) {
+		idMode = 1,
+		pcData = filenames;
+
+		for(var pIndex = 0; pIndex < filenames.length; pIndex++){
+			var name = filenames[pIndex];
+
+			tableData.push([
+				name.split('.geojson')[0],
+				clusterData[name].scenario.name
+			]);
+
+			if(pIndex)
+				title += " vs " + name.split('.geojson')[0];
+		}
+	}
+	else{
+		pcData = filenames;
+
+		title += " vs " + filenames[1].split('.geojson')[0];
+
+		scenarioData["properties"].forEach(function(obj, i){
+			if(scenarioData["hasData"][i]){
+				tableData.push([
+					scenarioData["ids"][i],
+					obj.REGION_NAME
+				]);
+			}
+		});
+	}
+
+	// console.log("tableData: ", tableData);
+
+	function computeY(dimension, key, query, data){
 		var extent = 0;
 		if(filenames.length == 1){
-			extent = d3.extent(pcData, function(p, i) {
-				var value = "";
-				if(state.parCoor.plot == "0"){
-					value = state.parCoor.year == -1 ? d3.sum(p[d]) + "" : p[d][state.parCoor.year];
+			var queryData = data[query];
+			if(state.parCoor.plot == "0"){
+				extent = d3.extent(queryData, function(p, i) {
+					var value = state.parCoor.year == -1 ? d3.sum(p[key]) + "" : p[key][state.parCoor.year];
+
+					// console.log('index: ' + i);
 					if(!dedupData[i])
-						dedupData[i] = {GCAM_ID: p.GCAM_ID};
+						dedupData[i] = {GCAM_ID: tableData[i][0]};
 
-					dedupData[i][d] = value;
-				}
-				else if(d != "GCAM_ID"){
-					// console.log("Get me that linear fit girl!");
-					var y = [];
-					state.yearsScaled.forEach(function(n,i){ y.push(+p[d][i]); });
+					dedupData[i][dimension] = value;
+					tableData[i].push(value);
+					return +value;
+				});
+			}
+			else{
+				extent = [-1, 1];
 
-					// console.log(d, ": ", state.yearsScaled, y);
-					
-					value = linearRegression(y, state.yearsScaled).slope + "";
-					if(!dedupData[i])
-						dedupData[i] = {GCAM_ID: p.GCAM_ID};
+				//Do linearRegression
+				var min,
+					max;
 
-					dedupData[i][d] = value;
-				}
-				tableData[i].push(value);
-				return +value;
-			});
+				queryData.forEach(function(p, i){
+					var yLinear = [];
+					state.yearsScaled.forEach(function(n, i){ yLinear.push(+p[key][i]); });
+
+					var value = linearRegression(yLinear, state.yearsScaled).slope;
+
+					// console.log(tableData[i][0] + '(' + dimension + ')' + ': ' + value + ", ", yLinear);
+
+					if(!dedupData[i]){
+						dedupData[i] = {GCAM_ID: tableData[i][0]};
+					}
+
+					dedupData[i][dimension] = value;
+					// tableData[i].push(value);
+
+					if(typeof(max) == "undefined"){
+						max = value;
+						min = value;
+					}
+					else{
+						if(max < value)
+							max = value;
+
+						if(min > value)
+							min = value;
+					}
+				})
+
+				// Feature Scaling
+				var range = Math.abs(max) >= Math.abs(min) ? Math.abs(max) : Math.abs(min);
+				dedupData.forEach(function(p, i){
+					var scale = d3.scale.linear().domain([-range, range]).range([-1,1]);
+
+					p[dimension] = scale(p[dimension]);
+					tableData[i].push(p[dimension]);
+				});
+
+			}
 		}
-		else if(filenames.length > 2 || typeof(countryIndex) != "undefined"){
-			extent = d3.extent(pcData, function(p, i) {
-				var res = null;
-				var value = "";
-				if(d != 'name' && d != 'scenario' && d != 'GCAM_ID'){
-					if(!tableData[i])
-						tableData[i] = [];
+		else if(filenames.length > 2 || typeof(country) != "undefined"){		
+			if(state.parCoor.plot == "0"){
+				extent = d3.extent(data, function(file, i) {
+					var value = 0,
+					// scenarioData = clusterData[p];
+					// queryData is the specified file's query array, which has an element for each country and a key for each query type
+					queryData = clusterData[file].data[query];
 
-					// if(!p[d]){
-					// 	console.log('d: ', d);
-					// }
+					if(!dedupData[i])
+						dedupData[i] = {name: tableData[i][0]};
+
+					/*for(var countryIndex = 0; countryIndex < scenarioData["hasData"].length; countryIndex++){
+						if(scenarioData["hasData"][i]){
+							value += state.parCoor.year == -1 ? d3.sum(scenarioData.data[query][i][key]) : +scenarioData.data[query][i][key][state.parCoor.year];
+						}
+					}*/
 					
-					if(state.parCoor.plot == "0"){
-						value = p[d];
-						// console.log('value: ' + value);
+					if(typeof(country) != "undefined"){
+						value = state.parCoor.year == -1 ? d3.sum(queryData[country.index][key]) : +queryData[country.index][key][state.parCoor.year];
 					}
-					else if(state.parCoor.plot == "1"){
-						var y = [];
-						state.yearsScaled.forEach(function(n,i){ y.push(+p[d][i]); });
-
-						// console.log(d, ": ", state.yearsScaled, y);
-						
-						value = linearRegression(y, state.yearsScaled).slope + "";
-						if(!dedupData[i])
-							dedupData[i] = {name: p.name, scenario: p.scenario};
-
-						dedupData[i][d] = value;
+					else{
+						for(var countryIndex = 0; countryIndex < queryData.length; countryIndex++){
+							value += state.parCoor.year == -1 ? d3.sum(queryData[countryIndex][key]) : +queryData[countryIndex][key][state.parCoor.year];
+						}
 					}
+					
 
+					dedupData[i][dimension] = value;
 					tableData[i].push(value);
+					return +value;
+				});
+			}
+			else{
+				extent = [-1, 1];
 
-					// console.log('tableData[',i,']: ', p[d][state.parCoor.year])
-				}
-				else if(d != 'GCAM_ID'){
-					if(!tableData[i])
-						tableData[i] = [];
+				//Do linearRegression
+				var min,
+					max;
 
-					value = p[d]
-					tableData[i].push(value);
-				}
-				return +value;
-			});
+				data.forEach(function(p, i){
+
+					var queryData = clusterData[p].data[query];
+
+					if(!dedupData[i])
+						dedupData[i] = {name: tableData[i][0]};
+
+					var yLinear = [];
+					state.yearsScaled.forEach(function(n, i){
+						var value = 0;
+
+						for(var countryIndex = 0; countryIndex < queryData.length; countryIndex++){
+							value += +queryData[countryIndex][key][i];
+						}
+
+						yLinear.push(value);
+					});
+
+					var value = linearRegression(yLinear, state.yearsScaled).slope;
+
+					// console.log(tableData[i][0] + '(' + dimension + ')' + ': ' + value + ", ", yLinear);
+
+					dedupData[i][dimension] = value;
+					// tableData[i].push(value);
+
+					if(typeof(max) == "undefined"){
+						max = value;
+						min = value;
+					}
+					else{
+						if(max < value)
+							max = value;
+
+						if(min > value)
+							min = value;
+					}
+				})
+
+				// Feature Scaling
+				var range = Math.abs(max) >= Math.abs(min) ? Math.abs(max) : Math.abs(min);
+				dedupData.forEach(function(p, i){
+					var scale = d3.scale.linear().domain([-range, range]).range([-1,1]);
+
+					p[dimension] = scale(p[dimension]);
+					tableData[i].push(p[dimension]);
+				});
+			}
 		}
 		else{
 			extent = [-1,1];
 
+			var filename2 = filenames[1];
+			var d1 = clusterData[filename].data[query],
+				d2 = clusterData[filename2].data[query];
+
 			if(state.parCoor.plot == "0"){
-				pcData.forEach(function(p, i){
-					tableData[i].push(p[d]);
-				});
+				for(var countryIndex = 0; countryIndex < d1.length; countryIndex++){
+					var value = 0;
+
+					if(!dedupData[countryIndex])
+						dedupData[countryIndex] = {GCAM_ID: tableData[countryIndex][0]};
+
+					if(state.parCoor.year == -1){
+						var d1Sum = d3.sum(d1[countryIndex][key]),
+						d2Sum = d3.sum(d2[countryIndex][key]);
+
+						var max = d3.max([d1Sum, d2Sum]);
+						var scale = d3.scale.linear().domain([-max, max]).range([-1,1]);
+						value = scale((+d1Sum) - (+d2Sum));
+					}
+					else{
+
+						var max = d3.max([(+d1[countryIndex][key][state.parCoor.year]), (+d2[countryIndex][key][state.parCoor.year])]);
+						var scale = d3.scale.linear().domain([-max, max]).range([-1,1]);
+						value = scale((+d1[countryIndex][key][state.parCoor.year]) - (+d2[countryIndex][key][state.parCoor.year]));
+					}
+
+					dedupData[countryIndex][dimension] = value;
+					tableData[countryIndex].push(value);
+				}
 			}
-			else if(d != "GCAM_ID"){
-				pcData.forEach(function(p, i){
-					var y = [];
-					state.yearsScaled.forEach(function(n,i){ y.push(+p[d][i]); });
+			else{
+				extent = [-1,1];
 
-					var value = linearRegression(y, state.yearsScaled).slope + "";
+				//Do linearRegression
+				var min,
+					max;
+
+				data.forEach(function(p, i){
+
+					var queryData = clusterData[p].data[query];
+
 					if(!dedupData[i])
-						dedupData[i] = {GCAM_ID: p.GCAM_ID};
+						dedupData[i] = {name: tableData[i][0]};
 
-					dedupData[i][d] = value;
-					tableData[i].push(value);
+					var yLinear = [];
+					state.yearsScaled.forEach(function(n, i){
+						var value = 0;
+
+						for(var countryIndex = 0; countryIndex < queryData.length; countryIndex++){
+							value += +queryData[countryIndex][key][i];
+						}
+
+						yLinear.push(value);
+					});
+
+					var value = linearRegression(yLinear, state.yearsScaled).slope;
+
+					// console.log(tableData[i][0] + '(' + dimension + ')' + ': ' + value + ", ", yLinear);
+
+					dedupData[i][dimension] = value;
+					// tableData[i].push(value);
+
+					if(typeof(max) == "undefined"){
+						max = value;
+						min = value;
+					}
+					else{
+						if(max < value)
+							max = value;
+
+						if(min > value)
+							min = value;
+					}
+				})
+
+				// Feature Scaling
+				var range = Math.abs(max) >= Math.abs(min) ? Math.abs(max) : Math.abs(min);
+				dedupData.forEach(function(p, i){
+					var scale = d3.scale.linear().domain([-range, range]).range([-1,1]);
+
+					p[dimension] = scale(p[dimension]);
+					tableData[i].push(p[dimension]);
 				});
+
 			}
 		}
 
-		// console.log(d,': ', extent);
-
-		return d != "name" && d != "GCAM_ID" && d!= "filename" && d!= "scenario" && (y[d] = d3.scale.linear()
+		// console.log("extent(", dimension, "): ", extent);
+		y[dimension] = d3.scale.linear()
 			.domain(extent)
-			.range([height, 0]));
-	}));
+			.range([height, 0]);
+	}
 
-	if(dedupData.length > 0 && state.parCoor.plot == "1")
-		pcData = dedupData;
-	// console.log(pcData);
+	var dimensions = [],
+		dedupData = [];
+
+	for(var query in clusterKeys){
+		if(clusterKeys[query].length == 1 && clusterKeys[query][0] == "data"){
+			dimensions.push(query);
+			computeY(query, "data", query, pcData);
+		}
+		else{
+			for(var keyIndex = 0; keyIndex < clusterKeys[query].length; keyIndex++){
+				var key = clusterKeys[query][keyIndex];
+				dimensions.push(key);
+				computeY(key, key, query, pcData);
+			}
+		}		
+	}
+
+	x.domain(dimensions);
+
+	pcData = dedupData;
+		
+	// console.log('pcData: ', pcData);
+
+	$('#par-title label').html(title);
 
 	// Add grey background lines for context.
 	background = svg.append("g")
@@ -510,9 +522,8 @@ function parCoor(filenames, update, country) {
 		.attr("x", -8)
 		.attr("width", 16);
 
-	// console.log(dimensions, tableData);
 	dataTable(dimensions, tableData, false, idMode);
-	// redrawTable();
+	redrawTable();
 
 	function position(d) {
 		var v = dragging[d];

@@ -34,15 +34,21 @@ var state = {
 		obj: null,
 		scatterDrawn: false
 	},
+	den: {
+		colors: null
+	},
 	resize: false,
 	years: [],
 	yearsScaled: [],
 	fileMode: 0,
 };
 
+// stores the shape file
 var clusterShapefile = {},
+// stores the scenario file information
 clusterData = {},
 clusterQueries = [],
+// stores the associated cluster queries and their keys
 clusterKeys = {},
 currentLayerData = [],
 currentFile = {};
@@ -59,3 +65,23 @@ var clusterColors = [
    [250, 255, 253],
    [100, 54, 255]
 ];
+
+// Addon functions
+jQuery.fn.d3Click = function () {
+  this.each(function (i, e) {
+    var evt = new MouseEvent("click");
+    e.dispatchEvent(evt);
+  });
+};
+
+Array.prototype.unique = function() {
+    var a = this.concat();
+    for(var i=0; i<a.length; ++i) {
+        for(var j=i+1; j<a.length; ++j) {
+            if(a[i] === a[j])
+                a.splice(j--, 1);
+        }
+    }
+
+    return a;
+};

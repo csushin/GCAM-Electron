@@ -82,7 +82,8 @@ function dataTable(columnTitles, data, filtered, mode) {
 		].concat(columns);
 	}
 
-	// console.log(columns);
+	// console.log('columns: ', columns);
+	// console.log('data: ', data);
 
 	if(state.dataTable.hasLoaded){
 		table.destroy();

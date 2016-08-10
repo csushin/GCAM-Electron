@@ -69,6 +69,38 @@ function onEachFeatureNew(feature, layer) {
     });
 }
 
+function onEachFeatureParCoor(feature, layer){
+	layer.on({
+        click: function (e) {
+			var layer = e.target;
+			var feature = layer.feature;
+
+        	if(state.map.selectedLayer){
+        		// console.log('state.map.selectedLayer: valid!');
+        		clusterShapefile.layer.resetStyle(state.map.selectedLayer);
+        		state.map.selectedLayer.selected = false;
+        		// state.map.selectedLayer.setStyle({
+				//     "weight": 1,
+				//     "fillOpacity": 0.5
+				// });
+        	}
+        	state.map.selectedLayer = layer;
+        	layer.selected = true;
+
+        	layer.setStyle({
+			    "weight": 1,
+			    "fillOpacity": 0.7
+			});
+        	changeView('#par', function(){
+				state.parCoor.obj = new parCoor(d3.keys(clusterData).sort(), false, {index: feature.id, name: feature.properties.REGION_NAME});
+			});
+			
+        },
+		mouseover: highlightFeature,
+		mouseout: resetHighlight,
+    });
+}
+
 function loadGeoJSON (obj, geoJson, visible) {
 	console.log(obj.scenario);
 	obj.layer = L.geoJson(geoJson, {
@@ -151,9 +183,9 @@ function getSummationColor(feature){
 
 function layerStyle(feature) {
     return {
-        fillColor: getSummationColor(feature),
+        // fillColor: getSummationColor(feature),
         color: "black",
-		// fillColor: "grey",
+		fillColor: "grey",
 	    weight: 1,
 	    opacity: 0.4,
 	    fillOpacity: 0.2
@@ -163,7 +195,8 @@ function layerStyle(feature) {
 function loadNewGeoJSON (obj, geoJson, visible) {
 	// console.log(obj.scenario);
 	obj.layer = L.geoJson(geoJson, {
-		onEachFeature: onEachFeatureNew,
+		// onEachFeature: onEachFeatureNew,
+		onEachFeature: onEachFeatureParCoor,
 		style: layerStyle,
 	});
 	if(visible){
@@ -187,7 +220,7 @@ function appendLegend(color){
 	    .attr("height", height + 50)
 
 	var legendRectSize = 18;
-	var legendSpacing = 4; 
+	var legendSpacing = 4;
 
 	var legend = svg.selectAll('.legend')                    
       .data(color.domain())                                  
