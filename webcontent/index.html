@@ -7,8 +7,8 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/leaflet.css" />
-	<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/themes/smoothness/jquery-ui.css">
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+	<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/themes/smoothness/jquery-ui.css">
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.10.0/css/bootstrap-select.min.css">
 	<link rel="stylesheet" href="https://cdn.datatables.net/t/dt/dt-1.10.11,fc-3.2.1,fh-3.1.1/datatables.min.css"/>
 	<link rel="stylesheet" href="js/lib/jQuery-contextMenu/jquery.contextMenu.min.css"/>
@@ -535,6 +535,7 @@
                 <!-- <li><a href="#" onclick= "location.href='http://www.public.asu.edu/~msteptoe/SYDOVAT/index.html';">New</a></li> -->
                 <!-- <li><a onclick="openClicked()">Open...</a></li> -->
                 <li><a onclick="openClickedNew()">Open</a></li>
+                <li><a onclick="openClickedGeo()">Open geojson</a></li>
                 <!-- <li><a href="#" onclick="saveClicked()">Save</a></li>
                 <li role="presentation" class="divider"></li>
                 <li><a href="#" onclick="importClicked()">Import Synthetic Data</a></li>
@@ -589,6 +590,7 @@
 		</div>
 		<div id="fileInputDivNew" class="fileInputDiv" style="display:none;">
 			<input type="file" id="fileInputNew" multiple/>
+			<input type="file" id="fileInputGeo" multiple/>
 		</div>
 	</div>
 
@@ -664,8 +666,8 @@
 	<!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script> -->
 	<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.14/d3.min.js" onload="window.d3 = module.exports;"></script>
 	<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.14/d3.min.js"></script> -->
-	<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>	
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.10.0/js/bootstrap-select.min.js"></script>
 	<script src="https://cdn.socket.io/socket.io-1.4.5.js"></script>
 	<script src="https://cdn.datatables.net/t/dt/dt-1.10.11,fc-3.2.1,fh-3.1.1/datatables.min.js"></script>
@@ -680,6 +682,8 @@
 
 	<script src="js/Global.js"></script>
 	<script src="js/Loading.js"></script>
+	<script src="js/File.js"></script>
+	<script src="js/Process.js"></script>
 
 	<script src="js/Socket.js"></script>
 	<script src="js/Map.js"></script>
@@ -690,32 +694,17 @@
 	<script src="js/Evo.js"></script>
 
 	<script>
-		localStorage.clear();		
-
-		//http://bl.ocks.org/bobmonteverde/2070069
-
-	    function yearlyClusterRequest(mode, pcaMode, pythonMode, delay){
-	    	console.log('yearly cluster request', new Date());
-			socket.send('yearly cluster request', {
-				queries: clusterQueries,
-				keys: clusterKeys,
-				scenarios: clusterData,
-				mode: !mode ? state.evo.mode : mode,
-				pcaMode: !pcaMode ? state.evo.pcaMode : pcaMode,
-				pythonMode: !pythonMode ? state.evo.pythonMode : pythonMode,
-			});
-			setTimeout(showLoading, !delay ? 1000 : delay);
-	    }
+		localStorage.clear();
 
 	    
-
- 		function changeView(view){
+	     // Make 'view' active and visible, make current 'view' inactive and hide it
+ 		function changeView(view, complete){
  			if(state.activeView != view){
  				$(state.activeView + '-li').removeClass('active');
  				$(state.activeView + '-container').hide();
 
  				$(view + '-li').addClass('active');
-	 			$(view + '-container').show();
+	 			$(view + '-container').show(complete);
 
 	 			if(view == "#map"){
 	 				if(!state.map.refreshed){
@@ -723,27 +712,26 @@
 	 				}
 	 			}
 
-	 			if(view == "#par"){
-	 				// redrawTable();
-	 				if($(document).height() > $(window).height()){
-	 					redrawTable();
-	 					redrawTable();
-	 				}
-	 			}
-
 	 			state.activeView = view;
  			}
  		}
 
+ 		// Make 'view' active and visible
  		function setActiveView(view){
  			$(view + '-li').addClass('active');
  			state.activeView = view;
  			$(state.activeView + '-container').show();
  		}
 
+ 		// When page is ready setup button clicks and changes for selectors
  		$(function() {
  			// Electron hack to fix body height
  			$('body').height($('body').height() - 20);
+ 			$( window ).resize(function() {
+ 				$('body').css('height','');
+				$('body').height($('body').height() - 20);
+			});
+
 
  			setActiveView("#den");
  			// changeView("#map");
@@ -766,7 +754,6 @@
 				state.parCoor.year = $(this).val();
 				if(state.parCoor.filenames.length){
 					parCoor(state.parCoor.filenames, true, state.parCoor.country);
-					redrawTable();
 				}
 			})
 			$('#par-plot-select').change(function(e) {
@@ -779,12 +766,12 @@
 				}
 				if(state.parCoor.filenames.length){
 					parCoor(state.parCoor.filenames, true, state.parCoor.country);
-					redrawTable();
 				}
 			})
 
  		});
 
+		// Setup Leaflet map
 		var bounds = L.latLngBounds(L.latLng(90,180), L.latLng(-60,-180));
 		var map = L.map('map',{
 			center: [40,0],
@@ -806,309 +793,23 @@
 		state.map = map;
 		state.map.refreshed = false;
 
-		function openClicked(){
-		    $('#fileInput').click();
-		} 
+
+		// Setup file open
 		function openClickedNew(){
 		    $('#fileInputNew').click();
-		} 
-
-		function readFile(e) {
-			state.fileMode = 0;
-			var files = e.target.files;
-			fileNames = [];
-			for (var i = 0, f; file = files[i]; i++){
-				if (!file || typeof(dataArray[file.name]) != "undefined") {
-					return;
-				}
-				var reader = new FileReader();
-				var name = file.name;
-				var visible = true;
-
-				if(fileNames.length > 0){
-					visible = false;
-				}
-
-				fileNames.push(name);
-
-				reader.name = name;
-				reader.visible = visible;
-				$('#fileSelected').append($("<option></option>").attr("value", name).text(name));
-				reader.onload = function(e) {
-					var contents = e.target.result;
-					console.log('reader.onload');
-					// console.log(contents);
-					var parsedJson = JSON.parse(contents);
-					// geoJsonArray.push(parsedJson);
-					dataArray[this.name] = {scenario: parsedJson.scenario, years: parsedJson.years};
-					// $('#fileSelected') .append($("<option/>") .val(dataArray.length) .text(value));
-					console.log('visible: ', visible);
-					loadGeoJSON(dataArray[this.name], parsedJson, this.visible);
-				};
-				reader.readAsText(file);
-			};
-			$('#file-selection').show();
-			// $('#fileSelected').selectmenu( "refresh" );
 		}
-
-		function readFileNew(e) {
-			console.log("readFileNew Begin", new Date());			
-			showLoading(true);
-
-			$('#par-controls-container').hide();
-
-			if(clusterShapefile.layer){
-				map.removeLayer(clusterShapefile.layer);
-				console.log("Should remove layer!!!!")
-			}
-
-			state.fileMode = 1;
-
-			var files = e.target.files;
-			state.geoLoaded = 0,
-			state.scenariosLoaded = 0;
-			state.scenariosProc = 0;
-			state.filesLoaded = 0;
-			state.filesCount = e.target.files.length;
-			fileNames = [];
-
-			clusterShapefile = {},
-			clusterData = {},
-			clusterQueries = [],
-			clusterKeys = {};
-
-			for (var i = 0, f; file = files[i]; i++){
-				if (!file || typeof(dataArray[file.name]) != "undefined") {
-					return;
-				}
-				var reader = new FileReader();
-				reader.fileName = file.name;
-
-				fileNames.push(reader.fileName);
-
-				reader.onload = function(e) {
-					var contents = e.target.result;
-					var parsedJson = JSON.parse(contents);
-
-					if( !('geo_data' in parsedJson)){
-
-						clusterShapefile = {scenario: parsedJson.scenario, years: parsedJson.years, parsedJson: parsedJson};
-
-						state.filesLoaded++;
-						state.geoLoaded++;
-
-						if(state.filesLoaded == state.filesCount){
-							if(state.scenariosLoaded > 1){
-								loadingComplete();
-							}
-							else{
-								hideLoading();
-								alert("Atleast two scenario files must be uploaded!");
-							}
-						}
-					}
-					else{
-						clusterData[this.fileName] = {scenario: parsedJson.scenario, years: parsedJson.years};
-						$('#fileSelected').append($("<option></option>").attr("value", this.fileName).text(this.fileName));
-
-						loadClusterJSON(clusterData[this.fileName], parsedJson);
-						state.filesLoaded++;
-						state.scenariosLoaded++;
-
-						if(state.scenariosLoaded == 2){
-							state.years = parsedJson.years;
-							var min = d3.min(state.years);
-							state.yearsScaled = [];
-							state.years.forEach(function(n,i){state.yearsScaled.push(n - min);});
-
-							$('#par-controls-container').show();
-
-							var yearSelect = $('#par-year-select');
-							yearSelect.empty();
-							yearSelect.append($("<option/>")
-						    	.val(-1)
-						    	.text('All'));
-							$.each(state.years, function(key, value) {   
-							    yearSelect.append($("<option/>")
-							    	.val(key)
-							    	.text(value));
-							});
-						}
-
-						if(state.filesLoaded == state.filesCount){
-							console.log("readFileNew End", new Date());							
-							
-							if(state.scenariosLoaded > 1){
-								loadingComplete();
-							}
-							else{
-								hideLoading();
-								alert("Atleast two scenario files must be uploaded!");
-							}
-						}
-					}
-				};
-				reader.readAsText(file);
-			};
-		}
-
-		function loadingComplete(){
-			$('#file-selection').show();
-
-			console.log('clusterData request', new Date())
-			socket.send('clusterData request', {queries: clusterQueries, keys: clusterKeys, scenarios: clusterData});
-			processDataLocal(clusterQueries, clusterKeys, clusterData);
-			loadNewGeoJSON(clusterShapefile, clusterShapefile.parsedJson, true);
-			delete clusterShapefile.parsedJson;						
-		}
+		/*function openClickedGeo(){
+			$('#fileInputGeo').click();
+		}	*/	
 
 		function displayContents(contents) {
 		  var element = document.getElementById('file-content');
 		  element.innerHTML = contents;
 		}
-
-		document.getElementById('fileInput').addEventListener('change', readFile, false);
 		document.getElementById('fileInputNew').addEventListener('change', readFileNew, false);
+		// document.getElementById('fileInputGeo').addEventListener('change', readFileGeo, false);
 
-		function addParameter(parameter){
-			if(parameters.indexOf(parameter) == -1){
-				parameters.push(parameter);
-				return true;
-			}
-			return false;
-		}
-
-		function addKeys(array, keys){
-			for(var index = 0; index < keys.length; index++){
-				if(array.indexOf(keys[index]) == -1 && typeof(keys[index]) != "function"){
-					array.push(keys[index]);
-				}
-			}
-		}
-
-		//File VF
-		//[country -> [primary_energies], ...]
-		function loadClusterJSON (obj, json) {
-			// console.log(obj.scenario);
-			var features = json.features;
-
-			obj.properties = [],
-			obj.features = [],
-			obj.queries = Object.keys(features[0].queries),
-			obj.primary_energy = [],
-			obj.primary_energy_keys = [],
-			obj.data = {},
-			obj.dataKeys = {};
-
-			for(var index = 0; index < obj.queries.length; index++){
-				obj.data[obj.queries[index]] = [];
-				obj.dataKeys[obj.queries[index]] = [];
-			}
-
-			for(var featureIndex = 0;  featureIndex < features.length; featureIndex++){
-				var feature = features[featureIndex];
-
-				obj.properties.push(feature.properties);				
-				// obj.primary_energy.push(feature.queries["primary_energy"]);
-
-				for(var queryIndex in feature.queries){
-					var query = feature.queries[queryIndex]
-
-					obj.data[queryIndex].push(query);
-
-					if(Array.isArray(query)){
-						obj.dataKeys[queryIndex] = ["Array"];
-					}
-					else{
-						addKeys(obj.dataKeys[queryIndex], Object.keys(query));
-					}
-				}
-
-				// addKeys(obj.primary_energy_keys, Object.keys(feature.queries["primary_energy"]));
-			}
-
-			addKeys(clusterQueries, obj.queries);
-
-			for(var index = 0; index < obj.queries.length; index++){
-				if(!clusterKeys[obj.queries[index]])
-					clusterKeys[obj.queries[index]] = [];
-
-				addKeys(clusterKeys[obj.queries[index]], obj.dataKeys[obj.queries[index]]);
-			}
-			// console.log(obj);
-		}
-
-		function processDataLocal(queries, keys, scenarios){
-			console.log('processDataLocal begin', new Date())
-			for(var scenarioIndex in scenarios){
-				var scenarioData = scenarios[scenarioIndex].data,
-				arrayLength = scenarios[scenarioIndex].years.length,
-				dataMetrics = {primary_energy: []};
-
-				for(var dataIndex = 0; dataIndex < scenarioData["primary_energy"].length; dataIndex++){
-
-					var queryData = scenarioData["primary_energy"][dataIndex];
-					dataMetrics["primary_energy"][dataIndex] = {};
-
-					for(var keyIndex = 0; keyIndex < keys["primary_energy"].length; keyIndex++){
-
-						var key = keys["primary_energy"][keyIndex];
-						var dataMetric = "N/A";
-
-						if(!queryData[key] || queryData[key][0] == "No data"){
-							// queryData[key] = Array.apply(null, new Array(arrayLength)).map(Number.prototype.valueOf, 0);
-							queryData[key] = new Array(arrayLength).fill(0);
-						}
-						else{
-							dataMetric = queryData[key].pop();
-						}
-
-						dataMetrics["primary_energy"][dataIndex][key] = dataMetric;
-					}
-				}
-
-				scenarios[scenarioIndex]['dataMetrics'] = dataMetrics;
-				// console.log(dataMetrics);
-			}
-			console.log('processDataLocal end', new Date())
-		}
-
-		function processScenarioYear(year){
-			console.log('processScenarioYear', new Date())
-
-			var scenarios = d3.keys(clusterData).sort();
-
-			var scenarioVector = new Array(scenarios.length),
-			firstScenario = clusterData[scenarios[0]].data;
-
-			var vectorSize = clusterData[scenarios[0]].data["primary_energy"].length *
-				d3.keys(clusterData[scenarios[0]].data["primary_energy"][0]).length;
-
-			for(var scenarioIndex = 0; scenarioIndex < scenarios.length; scenarioIndex++){
-				var scenarioData = clusterData[scenarios[scenarioIndex]].data,
-				featureVector = new Array(vectorSize),
-    			featureVectorCount = 0;
-
-				for(var countryIndex = 0; countryIndex < scenarioData["primary_energy"].length; countryIndex++){
-					var queryData = scenarioData["primary_energy"][countryIndex];
-
-					for(var type in queryData){
-						featureVector[featureVectorCount++] = +queryData[type][year];
-					}
-				}
-
-				scenarioVector[scenarioIndex] = featureVector;
-			}
-			console.log('processScenarioYear end', new Date())
-			return scenarioVector;
-		}
-
-		function scenarioYearRequest(scenarioVectors, mode, delay){
-			console.log('scenario year request', new Date());
-			socket.send('scenario year request', {data: scenarioVectors, mode: !mode ? 0 : mode});
-			setTimeout(showLoading, !delay ? 1000 : delay);
-		}
-
+		globalCheck = false;
 	</script>
 </body>
 </html>
