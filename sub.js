@@ -24,7 +24,6 @@ process.on('message', (m) => {
 process.send('connected');
 
 const figue = require('./lib/figue');
-const ML = require('ml');
 const d3 = require('d3');
 const PythonShell = require('python-shell');
 const fs = require('fs');
@@ -169,16 +168,6 @@ function processYearlyClusterReq(data){
   process.send({reqType: 'progress update', data: 0.2});
 
   pythonPCA(data.pythonMode, yearVectors, true, process);
-
-  // Was used to call js PCA analysis but is slow
-  /*if(!data.mode){
-    transformedVectors = PCA(yearVectors, 2);
-    process.send({reqType: 'yearly cluster response', data: transformedVectors});
-    console.log('yearly cluster response', (new Date()).toUTCString());
-  }
-  else{
-    pythonPCA(data.pythonMode, yearVectors, data.pcaMode > 2, process);
-  }*/
   return;
 }
 
@@ -611,12 +600,6 @@ function getScenarioDetailsV2(tree, labels){
     scenarioIDs.push(getScenarioDetailsV2(tree.right, labels));
   }
   return id;
-}
-
-function PCA(vectors, dims){
-  var U = new ML.Stat.PCA(vectors);
-  var V = U.project(vectors, dims);
-  return V;
 }
 
 function pythonPCA(mode, data, useFile){
