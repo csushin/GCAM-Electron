@@ -23,7 +23,15 @@ function loadingComplete(){
 	processAllInputs();
 
 	console.log('clusterData request', new Date())
+	//send the structured data to the main process
 	socket.send('clusterData request', {queries: clusterQueries, keys: clusterKeys, scenarios: clusterData, inputs: scenarioInputs});
+
+
+	/*********************Begin Modification by Xing Liang, Aug 2016***************************/ 
+	console.log('statData request', new Date())
+	socket.send('statData request', {queries: clusterQueries, keys: clusterKeys, scenarios: Object.keys(clusterData), datatable: clusterData});
+	/***********************End Modification by Xing Liang, Aug 2016***************************/ 
+
 
 	// in Process.js, processes data locally for browser use
 	processDataLocal(clusterQueries, clusterKeys, clusterData);
@@ -76,7 +84,7 @@ function readFileNew(e) {
 			var parsedJson = JSON.parse(contents);
 
 			if( !('geo_data' in parsedJson) && !('geodata' in parsedJson)){
-
+				// if the data is geo_data map shapfile
 				clusterShapefile = {scenario: parsedJson.scenario, years: parsedJson.years, parsedJson: parsedJson};
 
 				state.filesLoaded++;
@@ -93,7 +101,7 @@ function readFileNew(e) {
 					}
 				}
 			}
-			else{
+			else{//otherwise, the data is scenario values.
 				var years = parsedJson.years == undefined ? parsedJson.scenario.years : parsedJson.years;
 				clusterData[this.fileName] = {scenario: parsedJson.scenario, years: years.slice()};
 
@@ -178,6 +186,7 @@ function loadClusterJSON (obj, json) {
 				addKeys(obj.dataKeys[queryIndex], Object.keys(query));
 			}
 		}
+		//some of the regions is null of which the query property will be null
 		if(feature.queries){
 			obj.hasData.push(true);
 		}

@@ -108,6 +108,9 @@ function processClusterDataReq(data){
   process.send("dendogram created!");
   process.send('buildD3Cluster END ' + (new Date()).toUTCString());
 
+  
+  
+
   // writeData('ProccessCluster.txt', JSON.stringify(clusters));
       
   // process.send({reqType: 'cluster response', data: {clusters: clusters, dendogram: dendogram, d3Cluster: d3Cluster}});

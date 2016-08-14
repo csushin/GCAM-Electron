@@ -1,3 +1,4 @@
+/*********************Addeed by Xing Liang, Aug 2016***************************/ 
 process.on('message', (m) => {
   // console.log('CHILD got message:', m);
   // process.send(m);
@@ -11,16 +12,113 @@ process.on('message', (m) => {
   }
 });
 
-//all output message should first send to the main process which can print the message out
+//all output message should first send to the main process which can print the message ou
 process.send('invoked the process of computating of stat data...');
 
 function processClusterDataReq(data){
-  process.send('data queries length:' + data.queries.length);
-  var statData = {
-    test: 1
-  };
+  
+  var ret = {};
+  var final_ret = {};
+  var regions = [], years = [];
+  //get the amount of regions and years. Here I assume each scenario has the same available regions and years
+  for(var key in data.scenarios){
+    var scenarioName = data.scenarios[key];
+    years = data.datatable[scenarioName]['years'];
+    break;
+  }
 
+  // Compute the mean, start from the parent output. Result uses int index while original data uses string index
+  // Put the mean of all countries in that time slice to the end of the array
+  for(var i=0; i<data.queries.length; i++){
+    var parentKey = data.queries[i];//such as "CO2 emissions by aggregate sector"
+    for(var j=0; j<data.keys[parentKey].length; j++){
+      var childKey = data.keys[parentKey][j];//string index, such as 'data' or "transportation"
+      if(ret[parentKey]==undefined) ret[parentKey] = {};
+      ret[parentKey][childKey] = [];//add 2 property for mean and std of all regions
+      //first do the mean over the countries in each time slice
+      for(var yearInd in years){
+        for(var scenarioId in data.scenarios){
+          var sumAllRegions = 0.0;
+          var Regioncount = 0;
+          var scenarioName = data.scenarios[scenarioId];
+          data.datatable[scenarioName]['data'][parentKey].forEach(function(d, regionInd){
+            // get the sum of all countries in all scenarios. Some of the childkey output is null and we take them as zer
+            sumAllRegions+=(d[childKey]==undefined?0:parseFloat(d[childKey][yearInd]));
+            Regioncount++;
+
+            // get the sum of each country in all scenarios
+            if(ret[parentKey][childKey] == undefined) ret[parentKey][childKey] = [];
+            if(ret[parentKey][childKey][yearInd] == undefined) ret[parentKey][childKey][yearInd] = [];
+            if(ret[parentKey][childKey][yearInd][regionInd] == null) ret[parentKey][childKey][yearInd][regionInd] = 0;
+
+            ret[parentKey][childKey][yearInd][regionInd] += (d[childKey]==undefined?0:parseFloat(d[childKey][yearInd]));
+            // process.send(ret[i][j][yearInd][regionInd])
+            // if all scenarios are added, compute each country's average over all scenarios
+            if(scenarioId == data.scenarios.length-1) ret[parentKey][childKey][yearInd][regionInd] /= data.scenarios.length;
+          });
+        }
+        ret[parentKey][childKey][yearInd].push(Regioncount==0?0:sumAllRegions/Regioncount);//put the mean of all countries in that time slice to the end of the array
+      }
+    }
+  }
+
+  // Compute std using the mean and each sample value
+  // Put the std at the end of array (right after the mean value), also insert the lower and upper range mean+-2*std
+  for(var i=0; i<data.queries.length; i++){
+    var parentKey = data.queries[i];//such as "CO2 emissions by aggregate sector"
+    for(var j=0; j<data.keys[parentKey].length; j++){
+      var childKey = data.keys[parentKey][j];//string index, such as 'data' or "transportation"
+      for(var yearInd in years){//for each year from 1990 to ...
+        var squareSum = 0, countRegions = 0, lastIndex = ret[parentKey][childKey][yearInd].length-1;
+        var mean = ret[parentKey][childKey][yearInd][lastIndex];
+        ret[parentKey][childKey][yearInd].forEach(function(d, regionInd){
+          if(regionInd <= Regioncount){
+            squareSum += Math.pow(d-mean, 2.0);
+            countRegions++;
+          }
+        });
+        var std = countRegions==0?0:Math.sqrt(squareSum/(countRegions-1), 2);
+        ret[parentKey][childKey][yearInd].push(std);
+        ret[parentKey][childKey][yearInd].push(mean-2*std);
+        ret[parentKey][childKey][yearInd].push(mean+2*std);
+      }
+    }
+  }
+
+  // Extract the two country with minimum and maximum value.
+  for(var i=0; i<data.queries.length; i++){
+    var parentKey = data.queries[i];//such as "CO2 emissions by aggregate sector"
+    for(var j=0; j<data.keys[parentKey].length; j++){
+      var childKey = data.keys[parentKey][j];//string index, such as 'data' or "transportation"
+      for(var yearInd in years){//for each year from 1990 to ...
+        var lastIndex = ret[parentKey][childKey][yearInd].length-1;
+        var upper = ret[parentKey][childKey][yearInd][lastIndex];
+        var lower = ret[parentKey][childKey][yearInd][lastIndex-1];
+        var min = Number.MAX_VALUE, max = Number.MIN_VALUE;
+        ret[parentKey][childKey][yearInd].forEach(function(d, regionInd){
+          if(regionInd <= Regioncount){
+            if(d<min){
+              min = d;
+              // we not only record the country with the lowest value, but also record them if beyond the range mean-2*std by sign.
+              ret[parentKey][childKey][yearInd][lastIndex+1] = (min<lower?-1:1)*regionInd;
+              ret[parentKey][childKey][yearInd][lastIndex+2] = min;
+            }
+            if(d>max){
+              max = d;
+              ret[parentKey][childKey][yearInd][lastIndex+3] = (max<upper?-1:1)*regionInd;
+              ret[parentKey][childKey][yearInd][lastIndex+4] = max;
+            }
+          }
+        });
+        // the order of the array will be mean, std, lower, upper, country index with the lowest value, the lowest value, country index with the highest value and the highest value.
+        // for slice function, negative numbers means number of elements slicing from the end
+        var obj = ret[parentKey][childKey][yearInd].slice(-8);
+        if(obj[0] == null) process.send(obj);//jsut for debugging
+        ret[parentKey][childKey][yearInd] = obj;
+      }
+    }
+  }
 
   //send the message to the main process
-  process.send({reqType: 'statData response', data: statData});
+  process.send({reqType: 'statData response', data: ret});
 }

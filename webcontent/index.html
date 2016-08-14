@@ -547,6 +547,7 @@
             <li id="map-li"><a class="no-link" onclick="changeView('#map')">Map</a></li>
             <li id="par-li"><a class="no-link" onclick="changeView('#par')">Parallel Coordinates</a></li>
             <li id="evo-li"><a class="no-link" onclick="changeView('#evo')">Evolution</a></li>
+            <li id="lct-li"><a class="no-link" onclick="changeView('#lct')">Line Chart</a></li>
           </ul>
         </div><!--/.nav-collapse -->
       </div>
@@ -631,6 +632,17 @@
 			<table id="example" class="display" cellspacing="0" width="100%"></table>
 		</div>
 	</div>
+
+	<!---*********************Begin Modification by Xing Liang, Aug 2016***************************-->
+	<div id="lct-container" style="display:none">
+		<div id="lct-controls-container">
+
+		</div>
+		<div id="lct-main-container">
+		</div>
+	</div>
+	<!---/***********************End Modification by Xing Liang, Aug 2016***************************/ -->
+
 	<div id="evo-container" style="display:none;">
 		<div id="evo-controls-container">
 			<div id="evo-year">
@@ -692,6 +704,7 @@
 	<script src="js/DataTable.js"></script>
 	<script src="js/ScatterPlot.js"></script>
 	<script src="js/Evo.js"></script>
+	<script src="js/LineChart.js"></script>
 
 	<script>
 		localStorage.clear();

@@ -65,6 +65,7 @@ app.on('activate', function () {
 const child_process = require('child_process');
 var child = child_process.fork(`${__dirname}/sub.js`);
 
+
 socket.on('asynchronous-message', function (event, arg) {
   mainWindow.webContents.send('asynchronous-reply', 'pong')
 })
@@ -112,6 +113,38 @@ socket.on('scenario year request', function(event, req){
 socket.on('process data request', function(event, data){
   child.send({reqType:'process data request', data: data});
 })
+
+/*********************Begin Modification by Xing Liang, Aug 2016***************************/ 
+var statChild = child_process.fork(`${__dirname}/stat.js`);
+
+//listen the message sent from the process in that the statchild process
+statChild.on('message', (m) => {
+  if(m.reqType){
+    console.log('PARENT got message from statChild:', m.reqType);
+    //send the data to the socket in the browser side.
+    mainWindow.webContents.send(m.reqType, m.data);
+  }
+  else{
+    console.log('PARENT got message from statChild:', m);
+  }
+});
+
+statChild.on('error', function (err) {
+  console.log('Error happened in statChild.');
+});
+
+statChild.on('exit', function(code, signal){
+  console.log('Child exited with code ' + code);
+  if(code > 0){
+    console.log('New child is being spawned!')
+    statChild = child_process.fork(`${__dirname}/sub.js`);
+  }
+})
+
+socket.on('statData request', function(event, req){
+  statChild.send({reqType: 'statData request', data: req});
+});
+/***********************End Modification by Xing Liang, Aug 2016***************************/ 
 
 const PythonShell = require('python-shell');
 const fs = require('fs');
