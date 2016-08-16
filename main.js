@@ -115,6 +115,7 @@ socket.on('process data request', function(event, data){
 
 const PythonShell = require('python-shell');
 const fs = require('fs');
+const execFile = require('child_process').execFile;
 
 function pythonPCA(mode, data){
   // console.log(JSON.stringify(data));
@@ -123,11 +124,25 @@ function pythonPCA(mode, data){
     args: [mode, 'data/large.txt', true]
   };
 
-  PythonShell.run('python/pca.py', options, function (err, results) {
+  /*PythonShell.run('python/pca.py', options, function (err, results) {
     if (err) throw err;
     // results is an array consisting of messages collected during execution
     // console.log(results);
     var output = JSON.parse(results[0]);
+    // console.log('output parsed: ', output);
+    mainWindow.webContents.send('scenario year response', output);
+
+    console.log('scenario year response', (new Date()).toUTCString())
+  });*/
+
+  execFile('python/dist/pca/pca.exe', options.args, function (err, results) {
+    if (err){
+      console.log(err);
+      return;
+    }
+    // results is an array consisting of messages collected during execution
+    // console.log(results);
+    var output = JSON.parse(results);
     // console.log('output parsed: ', output);
     mainWindow.webContents.send('scenario year response', output);
 

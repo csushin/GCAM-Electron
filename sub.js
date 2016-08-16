@@ -27,6 +27,7 @@ const figue = require('./lib/figue');
 const d3 = require('d3');
 const PythonShell = require('python-shell');
 const fs = require('fs');
+const execFile = require('child_process').execFile;
 
 Array.prototype.unique = function() {
     var a = this.concat();
@@ -406,19 +407,11 @@ function getYearVectors(queries, keys, scenarios){
         var queryKey = queryKeys[queryKeyIndex],
         queryElements = scenarioData[queryKey];
 
-        if(si == 0 && yearIndex == 0){
-          process.send('queryKey(' + queryKeyIndex + '): ' + queryKey);
-        }
-
         for(var elementIndex = 0; elementIndex < queryElements.length; elementIndex++){
           var queryElement = queryElements[elementIndex],
           keyArray = keys[queryKey];
 
           for(var keyIndex = 0; keyIndex < keyArray.length; keyIndex++){
-            if(si == 0 && elementIndex == 0 && yearIndex == 0){
-              process.send('keyIndex(' + keyIndex + '): ' + keyArray[keyIndex]);
-              process.send('queryElement: ' + queryElement[keyArray[keyIndex]][yearIndex]);
-            }
             featureVectors[featureVectorCount] = +queryElement[keyArray[keyIndex]][yearIndex];
             featureVectorCount++;
           }
@@ -618,11 +611,25 @@ function pythonPCA(mode, data, useFile){
     options.args.push(JSON.stringify(data));
   }
 
-  PythonShell.run('python/pca.py', options, function (err, results) {
+  /*PythonShell.run('python/pca.py', options, function (err, results) {
     if (err) throw err;
     // results is an array consisting of messages collected during execution
     // console.log(results);
     var output = JSON.parse(results[0]);
+    // console.log('output parsed: ', output);
+    process.send({reqType: 'yearly cluster response', data: output});
+
+    console.log('yearly cluster response', (new Date()).toUTCString())
+  });*/
+
+  execFile('python/dist/pca/pca.exe', options.args, function (err, results) {
+    if (err){
+      process.send(err);
+      return;
+    }
+    // results is an array consisting of messages collected during execution
+    // console.log(results);
+    var output = JSON.parse(results);
     // console.log('output parsed: ', output);
     process.send({reqType: 'yearly cluster response', data: output});
 
