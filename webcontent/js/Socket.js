@@ -90,5 +90,6 @@ socket.on('statData response', function(event, req){
   linecharts.data = req.data;
   linecharts.years = req.years;
   linecharts.unit = req.dataMetrics;
+  linecharts.regionNames = req.regionNames;
 });
 /***********************End Modification by Xing Liang, Aug 2016***************************/ 

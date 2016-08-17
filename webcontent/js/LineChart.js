@@ -28,25 +28,21 @@ function prepareLineChart(parentKeys, childKeys){
 		// }
 		var parentkey = $("#lct-parentkey-select option:selected").text();
 		var childKey = $("#lct-childkey-select option:selected").text();
-		var width = $("#lct-main-container").width()*0.9;
+		var width = $("#lct-main-container").width()*0.4;
 		var height = "200";
-		var timeseries = linecharts.data[parentkey][childKey], metric = undefined;//linecharts.unit[parentkey][childKey];
+		var timeseries = linecharts.data[parentkey][childKey];
+		var metric = undefined;//linecharts.unit[parentkey][childKey];
 		var containerId = "lct-container-"+linecharts.charts.length;
-		$("#lct-main-container").append($("<div></div>").attr("width", width).attr("height", height).attr("id", containerId))
-		var lct = new LineChart(parentkey, childKey, containerId, width, height, timeseries, linecharts.years, metric);
+		$("#lct-main-container").append($("<div></div>").attr("width", width).attr("height", height).attr("id", containerId).css("float", "left"))
+		var lct = new LineChart(parentkey, childKey, containerId, width, height, timeseries, linecharts.years, linecharts.regionNames, metric);
 		lct.drawLineChart();
 		linecharts.charts.push(lct);
 	});
     
-    tooltip = d3.select("body")
-	.append("div")
-	.style("position", "absolute")
-	.style("z-index", "10")
-	.style("visibility", "hidden");
 	//add the function of removing line charts by using right click and selecting menu.
 }
 
-var LineChart = function(parentKey, childKey, containerId, width, height, data, years, metric){
+var LineChart = function(parentKey, childKey, containerId, width, height, data, years, regionNames, metric){
 	this.parentKey = parentKey;
 	this.childKey = childKey;
 	this.containerId = containerId;
@@ -54,6 +50,7 @@ var LineChart = function(parentKey, childKey, containerId, width, height, data, 
 	this.height = height;
 	this.data = data;
 	this.years = years.map(function(d) { return parseInt(d);});
+	this.regionNames = regionNames;
 	this.metric = metric;
 }
 
@@ -71,7 +68,7 @@ LineChart.prototype.drawLineChart = function (){
 	maxVal = (maxVal<0?0.8:1.2)*maxVal;
 	var x = d3.scale.linear().range([0, chartWidth]).domain([d3.min(this.years), d3.max(this.years)]);
 	var y = d3.scale.linear().range([chartHeight, 0]).domain([minVal, maxVal]);
-	var xAxis = d3.svg.axis().scale(x).orient('bottom').innerTickSize(-chartHeight).outerTickSize(0).tickPadding(10),
+	var xAxis = d3.svg.axis().scale(x).orient('bottom').innerTickSize(-chartHeight).outerTickSize(0).tickPadding(10).tickFormat(d3.format("d")),
 		yAxis = d3.svg.axis().scale(y).orient('left').innerTickSize(-chartWidth).outerTickSize(0).tickPadding(10);
 
 	var svg = d3.select("#"+this.containerId).append("svg")
@@ -181,56 +178,62 @@ LineChart.prototype.drawPaths = function(svg, x, y, margin){
 LineChart.prototype.startTransition = function(svg, chartWidth, chartHeight, rectClip, x, y, margin){
 	var that = this;
 	rectClip.transition()
-		.duration(200*that.years.length)
+		.duration(100*that.years.length)
 		.attr("width", chartWidth);
 
 	this.data.forEach(function(circle, i){
 		setTimeout(function() {
-			var marker = {
+			var upMarker = {
 				x: that.years[i],
 				y: circle[5],
-				country: circle[4]
+				regionCode: circle[4]
 			}
-			that.addMarkers(circle[0], marker, svg, chartHeight, x, y, margin);
-			marker.y = circle[7];
-			marker.country = circle[6];
-			that.addMarkers(circle[0], marker, svg, chartHeight, x, y, margin);
-		}, 200+200*i);//note the delay follows the time delay in transition animation
+			that.addMarkers(circle[0], upMarker, svg, chartHeight, x, y, margin);
+			var downMarker = {
+				x: that.years[i],
+				y: circle[7],
+				regionCode: circle[6]
+			}
+			that.addMarkers(circle[0], downMarker, svg, chartHeight, x, y, margin);
+		}, 110*i);//note the delay follows the time delay in transition animation
 	});
 }
 
 
 LineChart.prototype.addMarkers = function(meanVal, circle, svg, chartHeight, x, y, margin){
+	var that = this;
 	var r = 3,
-		xPos = x(circle.x)+r,
-		yPos = y(circle.y)+r,
+		xPos = x(circle.x),
+		yPos = y(circle.y),
 		yPosStart = y(meanVal);//the animation starts from the meanline
 	var marker = svg.append("g")
-		.attr("transform", "translate(" + (margin.left+xPos) + "," + yPosStart + ")")
+		.attr("transform", "translate(" + (xPos) + "," + yPosStart + ")")
 		.attr("opacity", 0);
 	marker.transition()
-		.duration(1000)
-		.attr("transform", "translate(" + (margin.left+xPos) + "," + yPos + ")")
+		.duration(500)
+		.attr("transform", "translate(" + (xPos) + "," + yPos + ")")
 		.attr("opacity", 1);
 	marker.append("circle")
-		.attr("class", "circle"+circle.country)
 		.attr("r", r)
 		.attr("cx", r)
 		.attr("cy", r)
-		.style("fill", function(d){
-			var text = this.className.baseVal.replace("circle","");
-			if(parseInt(text)<0) return "red";
-			else return "brown";
-		})
-		.on("mouseover", function(d){
-			var text = this.className.baseVal.replace("circle", "").replace("-", "");
-			tooltip.text(text + ", " + parseFloat(d.y).toFixed(2));
-			return tooltip.style("visibility", "visible");
-		})
+		.style("fill", color)
+		.on("mouseover", mouseover)
 		.on("mousemove", function(d){
 			return tooltip.style("top",(event.pageY-10)+"px").style("left", (event.pageX+10)+"px");
 		})
 		.on("mouseout", function(d){
 			return tooltip.style("visibility", "hidden");
 		});
+	function color(){
+		var text = circle.regionCode;//though this is dirty code, it has the access to the local variable and indeed works
+		if(parseInt(text)<0) return "red";
+		else return "darkgoldenrod";		
+	}
+
+	function mouseover(){
+		tooltip.html("<strong>Region: </strong>" + that.regionNames[Math.abs(circle.regionCode)] 
+			+ "<br><strong>Value: </strong>" + parseFloat(circle.y).toFixed(2));
+		return tooltip.style("visibility", "visible");
+	}
 }
