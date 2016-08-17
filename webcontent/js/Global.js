@@ -59,6 +59,12 @@ parameters = [],
 fileNames = [],
 clusters;
 
+var linecharts = {
+	data:{},
+	charts: []
+};
+var tooltip;
+
 var clusterColors = [
    [20, 20, 80],
    [22, 22, 90],

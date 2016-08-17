@@ -87,7 +87,8 @@ socket.on('process response', function(event, result){
 /*********************Begin Modification by Xing Liang, Aug 2016***************************/ 
 socket.on('statData response', function(event, req){
   console.log('stat data received!', new Date());
-  console.log(req);
-
+  linecharts.data = req.data;
+  linecharts.years = req.years;
+  linecharts.unit = req.dataMetrics;
 });
 /***********************End Modification by Xing Liang, Aug 2016***************************/ 

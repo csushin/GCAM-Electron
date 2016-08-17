@@ -302,6 +302,7 @@
 		right: 0;
 		bottom: 0px;
 	}
+
 	.ui-resizable-se {
 		display: none !important;
 	}
@@ -314,6 +315,29 @@
 	.ui-resizable-s {
 		display: none !important;
 	}
+
+	.lct-axis path, 
+	.lct-axis line{
+		fill: none;
+	    stroke: #000;
+	    shape-rendering: crispEdges;
+	}
+	.lct-axis text {
+	    fill: #000;
+	}
+	.lct-axis .tick line {
+	    stroke: rgba(0, 0, 0, 0.1);
+	}
+	.lct-range{
+		fill: rgba(230, 230, 255, 0.8);
+  		stroke: rgba(216, 216, 255, 0.8);
+	}
+	.lct-meanline {
+	    fill: none;
+	    stroke: #000;
+	    stroke-width: 2;
+	}
+
 
 	#loading{
 		position: fixed;
@@ -634,11 +658,19 @@
 	</div>
 
 	<!---*********************Begin Modification by Xing Liang, Aug 2016***************************-->
-	<div id="lct-container" style="display:none">
-		<div id="lct-controls-container">
-
+	<div id="lct-container" style="display:none; height:100%; width: 100%">
+		<div id="lct-controls-container" style="height:5%; width: 100%">
+			<label>
+				Category:
+				<select id='lct-parentkey-select' class="" name="lct-pkey"></select>
+			</label>
+			<label>
+				Sub-Category:
+				<select id="lct-childkey-select" class="" name="lct-ckey"></select>
+			</label>
+			<input type="button" id="lct-add-btn" value="Add Line Chart">
 		</div>
-		<div id="lct-main-container">
+		<div id="lct-main-container" style="overflow-y:scroll; width: 100%; height:95%;">
 		</div>
 	</div>
 	<!---/***********************End Modification by Xing Liang, Aug 2016***************************/ -->

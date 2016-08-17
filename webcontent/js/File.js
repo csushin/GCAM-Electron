@@ -30,6 +30,7 @@ function loadingComplete(){
 	/*********************Begin Modification by Xing Liang, Aug 2016***************************/ 
 	console.log('statData request', new Date())
 	socket.send('statData request', {queries: clusterQueries, keys: clusterKeys, scenarios: Object.keys(clusterData), datatable: clusterData});
+	prepareLineChart(clusterQueries, clusterKeys);
 	/***********************End Modification by Xing Liang, Aug 2016***************************/ 
 
 
