@@ -22,4 +22,6 @@ $ npm install
 $ npm start
 
 This app requires the python library Pandas(ant its required lib such as numpy>1.7.1) and sklearn. So in the development mode before you compile it, you should first install Pandas in python 3.4
-#python -m pip install pandas
+$ python -m pip install pandas
+$ python -m pip install sklearn
+$ python -m pip install numpy
