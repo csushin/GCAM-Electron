@@ -1,8 +1,3 @@
-const React = require('react');
-const ReactDOM = require('react-dom');
-const Select = require('react-select');
-
-
 //prepare the line chart: 1) inserting the valid output types into the select box. 2) validating the input
 function prepareLineChart(parentKeys, childKeys){
 	$("#lct-main-container").empty();
