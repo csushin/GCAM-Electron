@@ -29,7 +29,7 @@ function prepareLineChart(parentKeys, childKeys){
 		// }
 		var parentkey = $("#lct-parentkey-select option:selected").text();
 		var childKey = $("#lct-childkey-select option:selected").text();
-		var width = $("#lct-main-container").width()*0.4;
+		var width = $("#lct-main-container").width()*0.22;
 		var height = "200";
 		var timeseries = linecharts.data[parentkey][childKey];
 		var metric = undefined;//linecharts.unit[parentkey][childKey];
