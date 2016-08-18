@@ -29,6 +29,16 @@ const PythonShell = require('python-shell');
 const fs = require('fs');
 const execFile = require('child_process').execFile;
 
+var $;
+require("jsdom").env("", function(err, window) {
+    if (err) {
+        console.error(err);
+        return;
+    }
+ 
+    $ = require("jquery")(window);
+});
+
 Array.prototype.unique = function() {
     var a = this.concat();
     for(var i=0; i<a.length; ++i) {
@@ -283,7 +293,13 @@ function processData(queries, keys, scenarios){
   var labels = d3.keys(scenarios).sort();
   var featureVectors = new Array(labels.length),
   featureVectorCount = 0;
-  var revisit = [];
+  
+  // Check if JQuery available
+  var useJQ = false;
+  if(typeof($) != "undefined"){
+    useJQ = true;
+  }
+
   // process.send('labels: ' + labels.join(', '));
   process.send('processData BEGIN: ' + (new Date()).toUTCString());
   for(var si = 0; si < labels.length; si++){
@@ -306,7 +322,13 @@ function processData(queries, keys, scenarios){
             vector = vector.concat(new Array(arrayLength).fill(0));
           }
           else{
-            vector = vector.concat(queryData[key].slice(0,-1));
+            if(useJQ){
+              queryData[key].pop();
+              vector = $.merge(vector, queryData[key]);
+            }
+            else{
+              vector = vector.concat(queryData[key].slice(0,-1));
+            }
           }
 
         }
@@ -336,7 +358,7 @@ function processDataYearly(queries, keys, scenarios){
   for(var key in keys){
     keyCount += keys[key].length;
   }
-  process.send('keyCount: ' + keyCount);
+  // process.send('keyCount: ' + keyCount);
 
   for(var yearIndex = 0; yearIndex < yearLength; yearIndex++){
     
@@ -370,7 +392,7 @@ function processDataYearly(queries, keys, scenarios){
     yearFeatureVectors[yearIndex] = featureVectors;   
     // console.log('progress update');
   }
-  writeData('yearFeatureVectors.txt', JSON.stringify(yearFeatureVectors));
+  // writeData('yearFeatureVectors.txt', JSON.stringify(yearFeatureVectors));
   return yearFeatureVectors;
 }
 
@@ -633,7 +655,7 @@ function pythonPCA(mode, data, useFile){
     // console.log('output parsed: ', output);
     process.send({reqType: 'yearly cluster response', data: output});
 
-    console.log('yearly cluster response', (new Date()).toUTCString())
+    process.send('yearly cluster response ' + (new Date()).toUTCString());
   });
 }
 
