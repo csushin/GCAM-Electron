@@ -27,6 +27,17 @@ const figue = require('./lib/figue');
 const d3 = require('d3');
 const PythonShell = require('python-shell');
 const fs = require('fs');
+const execFile = require('child_process').execFile;
+
+var $;
+require("jsdom").env("", function(err, window) {
+    if (err) {
+        console.error(err);
+        return;
+    }
+ 
+    $ = require("jquery")(window);
+});
 
 Array.prototype.unique = function() {
     var a = this.concat();
@@ -107,9 +118,6 @@ function processClusterDataReq(data){
   var d3Cluster = buildD3Cluster(clusters, data.inputs);
   process.send("dendogram created!");
   process.send('buildD3Cluster END ' + (new Date()).toUTCString());
-
-  
-  
 
   // writeData('ProccessCluster.txt', JSON.stringify(clusters));
       
@@ -285,7 +293,13 @@ function processData(queries, keys, scenarios){
   var labels = d3.keys(scenarios).sort();
   var featureVectors = new Array(labels.length),
   featureVectorCount = 0;
-  var revisit = [];
+  
+  // Check if JQuery available
+  var useJQ = false;
+  if(typeof($) != "undefined"){
+    useJQ = true;
+  }
+
   // process.send('labels: ' + labels.join(', '));
   process.send('processData BEGIN: ' + (new Date()).toUTCString());
   for(var si = 0; si < labels.length; si++){
@@ -308,7 +322,13 @@ function processData(queries, keys, scenarios){
             vector = vector.concat(new Array(arrayLength).fill(0));
           }
           else{
-            vector = vector.concat(queryData[key].slice(0,-1));
+            if(useJQ){
+              queryData[key].pop();
+              vector = $.merge(vector, queryData[key]);
+            }
+            else{
+              vector = vector.concat(queryData[key].slice(0,-1));
+            }
           }
 
         }
@@ -338,7 +358,7 @@ function processDataYearly(queries, keys, scenarios){
   for(var key in keys){
     keyCount += keys[key].length;
   }
-  process.send('keyCount: ' + keyCount);
+  // process.send('keyCount: ' + keyCount);
 
   for(var yearIndex = 0; yearIndex < yearLength; yearIndex++){
     
@@ -372,7 +392,7 @@ function processDataYearly(queries, keys, scenarios){
     yearFeatureVectors[yearIndex] = featureVectors;   
     // console.log('progress update');
   }
-  writeData('yearFeatureVectors.txt', JSON.stringify(yearFeatureVectors));
+  // writeData('yearFeatureVectors.txt', JSON.stringify(yearFeatureVectors));
   return yearFeatureVectors;
 }
 
@@ -409,19 +429,11 @@ function getYearVectors(queries, keys, scenarios){
         var queryKey = queryKeys[queryKeyIndex],
         queryElements = scenarioData[queryKey];
 
-        if(si == 0 && yearIndex == 0){
-          process.send('queryKey(' + queryKeyIndex + '): ' + queryKey);
-        }
-
         for(var elementIndex = 0; elementIndex < queryElements.length; elementIndex++){
           var queryElement = queryElements[elementIndex],
           keyArray = keys[queryKey];
 
           for(var keyIndex = 0; keyIndex < keyArray.length; keyIndex++){
-            if(si == 0 && elementIndex == 0 && yearIndex == 0){
-              process.send('keyIndex(' + keyIndex + '): ' + keyArray[keyIndex]);
-              process.send('queryElement: ' + queryElement[keyArray[keyIndex]][yearIndex]);
-            }
             featureVectors[featureVectorCount] = +queryElement[keyArray[keyIndex]][yearIndex];
             featureVectorCount++;
           }
@@ -621,7 +633,7 @@ function pythonPCA(mode, data, useFile){
     options.args.push(JSON.stringify(data));
   }
 
-  PythonShell.run('python/pca.py', options, function (err, results) {
+  /*PythonShell.run('python/pca.py', options, function (err, results) {
     if (err) throw err;
     // results is an array consisting of messages collected during execution
     // console.log(results);
@@ -630,6 +642,20 @@ function pythonPCA(mode, data, useFile){
     process.send({reqType: 'yearly cluster response', data: output});
 
     console.log('yearly cluster response', (new Date()).toUTCString())
+  });*/
+
+  execFile('python/dist/pca/pca.exe', options.args, function (err, results) {
+    if (err){
+      process.send(err);
+      return;
+    }
+    // results is an array consisting of messages collected during execution
+    // console.log(results);
+    var output = JSON.parse(results);
+    // console.log('output parsed: ', output);
+    process.send({reqType: 'yearly cluster response', data: output});
+
+    process.send('yearly cluster response ' + (new Date()).toUTCString());
   });
 }
 

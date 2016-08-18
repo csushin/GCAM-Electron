@@ -110,30 +110,49 @@ function processClusterDataReq(data){
         var lastIndex = ret[parentKey][childKey][yearInd].length-1;
         var upper = ret[parentKey][childKey][yearInd][lastIndex];
         var lower = ret[parentKey][childKey][yearInd][lastIndex-1];
-        var min = Number.MAX_VALUE, max = Number.MIN_VALUE;
-        var minRegionId, maxRegionId;
+        var min = Number.MAX_VALUE, max = Number.MIN_SAFE_INTEGER;
+        var minRegionStack = [], maxRegionStack = [];
         ret[parentKey][childKey][yearInd].forEach(function(d, regionInd){
-          if(regionInd<lastIndex-4 && d!=Number.MIN_VALUE){
-            if(d<min){
-              min = d;
-              minRegionId = regionInd;
+          if(regionInd<lastIndex-4 && d!=Number.MIN_VALUE){//use stack to save the regionIDs
+            
+            if(d<=min){
+              if(d==min && minRegionStack.length != 0){
+                  var regionIds = minRegionStack.pop();
+                  regionIds.push(regionInd);
+                  minRegionStack.push(regionIds);
+              }
+              else{
+                min = d;
+                minRegionStack.push([regionInd]);
+              }
             }
-            if(d>max){
-              max = d;
-              maxRegionId = regionInd;
+            if(d>=max){
+              if(d==max && maxRegionStack.length != 0){
+                  var regionIds = maxRegionStack.pop();
+                  regionIds.push(regionInd);
+                  maxRegionStack.push(regionIds);
+              }
+              else{
+                max = d;
+                maxRegionStack.push([regionInd]);
+              }
             }
           }
         });
+        // if(parentKey=='CO2 emissions by aggregate sector' && childKey =='hydrogen')
+                // process.send(max+","+min);
         // we not only record the country with the lowest value, but also record them if beyond the range mean-2*std by sign.
+        ret[parentKey][childKey][yearInd][lastIndex+1] = (min<lower?'Neg-':'Pos-')+minRegionStack.pop().join(",");
         ret[parentKey][childKey][yearInd][lastIndex+2] = min;
-        ret[parentKey][childKey][yearInd][lastIndex+1] = (min<lower?-1:1)*minRegionId;
+
+        ret[parentKey][childKey][yearInd][lastIndex+3] = (max>upper?'Neg-':'Pos-')+maxRegionStack.pop().join(",");
         ret[parentKey][childKey][yearInd][lastIndex+4] = max;
-        ret[parentKey][childKey][yearInd][lastIndex+3] = (max>upper?-1:1)*maxRegionId;
         // the order of the array will be 0-mean, 1-std, 2-lower, 3-upper, 4-country index with the lowest value, 5-the lowest value, 6-country index with the highest value and 7-the highest value.
         // for slice function, negative numbers means number of elements slicing from the end
         var obj = ret[parentKey][childKey][yearInd].slice(-8);
         if(obj[0] == null) process.send(obj);//jsut for debugging
         ret[parentKey][childKey][yearInd] = obj;
+
       }
     }
   }

@@ -227,12 +227,14 @@ LineChart.prototype.addMarkers = function(meanVal, circle, svg, chartHeight, x, 
 		});
 	function color(){
 		var text = circle.regionCode;//though this is dirty code, it has the access to the local variable and indeed works
-		if(parseInt(text)<0) return "red";
+		if(text.indexOf("Neg")>-1) return "red";
 		else return "darkgoldenrod";		
 	}
 
 	function mouseover(){
-		tooltip.html("<strong>Region: </strong>" + that.regionNames[Math.abs(circle.regionCode)] 
+		var codes = circle.regionCode.substring(circle.regionCode.indexOf("-")+1).split(",");
+		var text = codes.length>1?(codes.length + " regions ("+ that.regionNames[codes[0]] +", etc.)"):that.regionNames[codes[0]];
+		tooltip.html("<strong>Region: </strong>" + text 
 			+ "<br><strong>Value: </strong>" + parseFloat(circle.y).toFixed(2));
 		return tooltip.style("visibility", "visible");
 	}
