@@ -5,6 +5,7 @@ const Select = require('react-select');
 
 //prepare the line chart: 1) inserting the valid output types into the select box. 2) validating the input
 function prepareLineChart(parentKeys, childKeys){
+	$("#lct-main-container").empty();
 	$.each(parentKeys, function(index, value){
 		$("#lct-parentkey-select").append($("<option ></option>").attr("value", index).text(value));
 	});
@@ -58,7 +59,7 @@ LineChart.prototype.drawLineChart = function (){
 	$("#"+this.containerId).empty();
 	$("#"+this.containerId).width(this.width);
 	$("#"+this.containerId).height(this.height);
-	var margin = {top: 20, right: 20, bottom: 20, left: 40},
+	var margin = {top: 20, right: 20, bottom: 40, left: 40},
 		chartWidth = this.width - margin.left - margin.right,
 		chartHeight = this.height - margin.top - margin.bottom;
 	var minVal = d3.min(this.data, function(d){ return d[2]<d[5]?d[2]:d[5];}),
@@ -85,6 +86,7 @@ LineChart.prototype.drawLineChart = function (){
 	this.addAxesAndLegend(svg, xAxis, yAxis, margin, chartWidth, chartHeight);
 	this.drawPaths(svg, x, y, margin);
 	this.startTransition(svg, chartWidth, chartHeight, rectClip, x, y, margin);
+	this.addTitle(svg, chartWidth, chartHeight, margin);
 
 }
 
@@ -120,7 +122,7 @@ LineChart.prototype.addAxesAndLegend = function(svg, xAxis, yAxis, margin, chart
 			.attr("dy", ".71em")
 			.style("text-anchor", "end")
 			.text(this.metric);
-	// This range should be rendered outside each single line chart because it can be shared by many line charts
+	// // This range should be rendered outside each single line chart because it can be shared by many line charts
 	// var legend = svg.append("g")
 	// 	.attr("class", "lct legend")
 	// 	.attr("transform", "translate(" + (chartWidth - legendWidth) + ",0)");
@@ -203,8 +205,8 @@ LineChart.prototype.startTransition = function(svg, chartWidth, chartHeight, rec
 LineChart.prototype.addMarkers = function(meanVal, circle, svg, chartHeight, x, y, margin){
 	var that = this;
 	var r = 3,
-		xPos = x(circle.x),
-		yPos = y(circle.y),
+		xPos = x(circle.x)-r,
+		yPos = y(circle.y)-r,
 		yPosStart = y(meanVal);//the animation starts from the meanline
 	var marker = svg.append("g")
 		.attr("transform", "translate(" + (xPos) + "," + yPosStart + ")")
@@ -238,4 +240,18 @@ LineChart.prototype.addMarkers = function(meanVal, circle, svg, chartHeight, x, 
 			+ "<br><strong>Value: </strong>" + parseFloat(circle.y).toFixed(2));
 		return tooltip.style("visibility", "visible");
 	}
+}
+
+LineChart.prototype.addTitle = function(svg, chartWidth, chartHeight, margin){
+	svg.append("text")
+		.attr("text-anchor", "middle")
+		.attr("transform", "translate(" +(chartWidth/2)+ ","+ (margin.top*1.5+chartHeight) + ")")
+		.attr("font-size", "15px")
+		.text(this.childKey);
+
+	svg.append("text")
+		.attr("text-anchor", "left")
+		.attr("transform", "translate(0" + ","+ (margin.top) + ")")
+		.attr("font-size", "12px")
+		.text(this.parentKey);
 }
