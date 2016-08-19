@@ -14,15 +14,22 @@ You can learn more about each of these components within the [Quick Start Guide]
 
 Learn more about Electron and its API in the [documentation](http://electron.atom.io/docs/latest).
 
+<!-- <<<<<<< HEAD -->
 This app requires the python library Pandas(and its required libs such as numpy(>1.7.1)) and sklearn. So before you compile the app, you should first have the libs ready in python 3.4. <br/>
 `python -m pip install pandas`<br/>
 `python -m pip install sklearn`<br/>
 `python -m pip install numpy`
+<!-- ======= -->
+<!-- >>>>>>> GCAM-Electron/master -->
 
 # Install the dependencies
 $ npm install
 
 # Start the electron application
+<!-- <<<<<<< HEAD -->
 $ npm start
 
 
+=======
+$ npm start
+<!-- >>>>>>> GCAM-Electron/master -->

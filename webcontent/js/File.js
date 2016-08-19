@@ -23,6 +23,7 @@ function loadingComplete(){
 	processAllInputs();
 
 	console.log('clusterData request', new Date())
+// <<<<<<< HEAD
 	//send the structured data to the main process
 	socket.send('clusterData request', {queries: clusterQueries, keys: clusterKeys, scenarios: clusterData, inputs: scenarioInputs});
 
@@ -34,6 +35,10 @@ function loadingComplete(){
 	/***********************End Modification by Xing Liang, Aug 2016***************************/ 
 
 
+// =======
+	socket.send('clusterData request', {queries: clusterQueries, keys: clusterKeys, scenarios: clusterData, inputs: scenarioInputs});
+
+// >>>>>>> GCAM-Electron/master
 	// in Process.js, processes data locally for browser use
 	processDataLocal(clusterQueries, clusterKeys, clusterData);
 
@@ -85,7 +90,11 @@ function readFileNew(e) {
 			var parsedJson = JSON.parse(contents);
 
 			if( !('geo_data' in parsedJson) && !('geodata' in parsedJson)){
+// <<<<<<< HEAD
 				// if the data is geo_data map shapfile
+// =======
+
+// >>>>>>> GCAM-Electron/master
 				clusterShapefile = {scenario: parsedJson.scenario, years: parsedJson.years, parsedJson: parsedJson};
 
 				state.filesLoaded++;
@@ -102,7 +111,11 @@ function readFileNew(e) {
 					}
 				}
 			}
-			else{//otherwise, the data is scenario values.
+// <<<<<<< HEAD
+			// else{//otherwise, the data is scenario values.
+// =======
+			else{
+// >>>>>>> GCAM-Electron/master
 				var years = parsedJson.years == undefined ? parsedJson.scenario.years : parsedJson.years;
 				clusterData[this.fileName] = {scenario: parsedJson.scenario, years: years.slice()};
 
@@ -187,7 +200,10 @@ function loadClusterJSON (obj, json) {
 				addKeys(obj.dataKeys[queryIndex], Object.keys(query));
 			}
 		}
+// <<<<<<< HEAD
 		//some of the regions is null of which the query property will be null
+// =======
+// >>>>>>> GCAM-Electron/master
 		if(feature.queries){
 			obj.hasData.push(true);
 		}
