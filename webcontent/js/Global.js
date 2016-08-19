@@ -58,6 +58,7 @@ dataArray = [],
 parameters = [],
 fileNames = [],
 clusters;
+// <<<<<<< HEAD
 /*********************Begin Modification by Xing Liang, Aug 2016***************************/
 var linecharts = {
 	data:{},
@@ -70,6 +71,8 @@ var tooltip = d3.select("body")
 	.style("background", "rgba(0, 0, 0, 0.8)")
 	.style("color", "#fff")
 	.style("visibility", "hidden");
+// =======
+// >>>>>>> GCAM-Electron/master
 
 var clusterColors = [
    [20, 20, 80],
@@ -77,7 +80,11 @@ var clusterColors = [
    [250, 255, 253],
    [100, 54, 255]
 ];
+// <<<<<<< HEAD
 /*********************End Modification by Xing Liang, Aug 2016***************************/
+// =======
+
+// >>>>>>> GCAM-Electron/master
 // Addon functions
 jQuery.fn.d3Click = function () {
   this.each(function (i, e) {

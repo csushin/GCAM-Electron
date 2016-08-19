@@ -82,6 +82,7 @@ socket.on('scenario year response', function(event, result){
 socket.on('process response', function(event, result){
 	globalVector = result;
 	console.log('process response', result);
+// <<<<<<< HEAD
 });
 
 /*********************Begin Modification by Xing Liang, Aug 2016***************************/ 
@@ -93,3 +94,6 @@ socket.on('statData response', function(event, req){
   linecharts.regionNames = req.regionNames;
 });
 /***********************End Modification by Xing Liang, Aug 2016***************************/ 
+// =======
+// });
+// >>>>>>> GCAM-Electron/master
