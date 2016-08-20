@@ -93,6 +93,11 @@ socket.on('statData response', function(event, req){
   linecharts.unit = req.dataMetrics;
   linecharts.regionNames = req.regionNames;
 });
+
+socket.on('contourIMG response', function(event, req){
+	console.log('contourIMG received!', new Date());
+	//.....
+})
 /***********************End Modification by Xing Liang, Aug 2016***************************/ 
 // =======
 // });

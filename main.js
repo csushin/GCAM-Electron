@@ -148,6 +148,10 @@ statChild.on('exit', function(code, signal){
 socket.on('statData request', function(event, req){
   statChild.send({reqType: 'statData request', data: req});
 });
+
+socket.on('contourIMG request', function(event, req){
+  statChild.send({reqType: 'contourIMG request', data: req});
+});
 /***********************End Modification by Xing Liang, Aug 2016***************************/ 
 
 // const PythonShell = require('python-shell');

@@ -36,7 +36,7 @@ function loadingComplete(){
 
 
 // =======
-	socket.send('clusterData request', {queries: clusterQueries, keys: clusterKeys, scenarios: clusterData, inputs: scenarioInputs});
+	// socket.send('clusterData request', {queries: clusterQueries, keys: clusterKeys, scenarios: clusterData, inputs: scenarioInputs});
 
 // >>>>>>> GCAM-Electron/master
 	// in Process.js, processes data locally for browser use

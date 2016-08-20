@@ -8,6 +8,9 @@ process.on('message', (m) => {
       case 'statData request':
         processClusterDataReq(m.data);
         break;
+      case 'contourIMG request':
+        processContourIMGReq(m.data);
+        break;
     }
   }
 });
@@ -159,4 +162,11 @@ function processClusterDataReq(data){
 
   //send the message to the main process
   process.send({reqType: 'statData response', data: {data: ret, years: years, regionNames: regionNames, unit: dataMetrics}});
+}
+
+
+//code block for extracting and drawing geojson contour given a region id or name 
+function processContourIMGReq(data){
+  
+  process.send({reqType: 'contourIMG response', data: url});
 }
