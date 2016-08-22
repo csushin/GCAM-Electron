@@ -48,7 +48,17 @@ function prepareLineChart(parentKeys, childKeys){
 		// push it to our global variables
 		linecharts.charts.push(lct);
 	});
-    
+}
+
+// return a set of base64 url or a single one
+function queryPolygon(regioncode){
+	//if it only has one region
+	if(regioncode.length>1){
+
+	}
+	else{
+
+	}
 }
 
 var LineChart = function(parentKey, childKey, containerId, width, height, data, years, regionNames, metric){
@@ -158,57 +168,76 @@ LineChart.prototype.drawPaths = function(svg, x, y, margin){
 
 LineChart.prototype.startTransition = function(svg, chartWidth, chartHeight, rectClip, x, y, margin){
 	// save the context object for adding circles to the line chart during setTimeout() function.
-	var that = this;
+	// var that = this;
 
 	// set the time of line chart animation
 	rectClip.transition()
-		.duration(100*that.years.length)
+		.duration(100*this.years.length)
 		.attr("width", chartWidth);
 
-	// enable the animation of the circles. It would be added pair by pair from left to right.
-	this.data.forEach(function(circle, i){
-		setTimeout(function() {
+
+	for(var i=0; i<this.data.length; i++){
+		animateDot(this, i);//pass the this context object to the function
+	}
+
+	function animateDot(thisobj, i){
+		setTimeout(function(){
+			var circle = this.data[i];
 			var upMarker = {
-				x: that.years[i],
+				x: this['years'][i],
 				y: circle[5],
 				regionCode: circle[4]
 			}
-			that.addMarkers(circle[0], upMarker, svg, chartHeight, x, y, margin);
+			this.addMarkers(circle[0], upMarker, svg, chartHeight, x, y, margin;
 			var downMarker = {
-				x: that.years[i],
+				x: this['years'][i],
 				y: circle[7],
 				regionCode: circle[6]
 			}
-			that.addMarkers(circle[0], downMarker, svg, chartHeight, x, y, margin);
-		}, 110*i);//note the delay follows the time delay in transition animation
-	});
+			this.addMarkers(circle[0], downMarker, svg, chartHeight, x, y, margin);
+		}.bind(thisobj), 110*i);// in default, the context of setTimeout is window, so we need to bind the thisobj context to the setTimeout function
+	}
+
+	function isChange(i){
+		if(i==0){
+			return 0;//show the world map and highlight the involved regions
+		}
+		else{
+			var curRegions = this.data[i][4].substring(this.data[i][4].indexOf('-')+1).split(',');//[4] represents only query the maximum values
+			var prevRegions = this.data[i-1][4].substring(this.data[i-1][4].indexOf('-')+1).split(',');//[4] represents only query the maximum values
+			if(curRegions.equals(prevRegions))//note here it invokes the customized prototype function
+				return 1;// draw circle
+			else
+				return 2;// draw the region polygon
+		}
+	}
 }
 
 
 LineChart.prototype.addMarkers = function(meanVal, circle, svg, chartHeight, x, y, margin){
-	// save the context object for showing data when hovering on the circle
-	var that = this;
-
 	// initialize the circle parameters
 	var r = 3,
 		xPos = x(circle.x)-r,
 		yPos = y(circle.y)-r,
 		yPosStart = y(meanVal);//the animation starts from the meanline
+
 	var marker = svg.append("g")
 		.attr("transform", "translate(" + (xPos) + "," + yPosStart + ")")
 		.attr("opacity", 0);
+
 	// set the time of the circle
 	marker.transition()
 		.duration(500)
 		.attr("transform", "translate(" + (xPos) + "," + yPos + ")")
 		.attr("opacity", 1);
+		
 	// insert the circle in each g element
 	marker.append("circle")
 		.attr("r", r)
 		.attr("cx", r)
 		.attr("cy", r)
-		.style("fill", color)
-		.on("mouseover", mouseover)
+		.style("fill", color.bind(this, circle.regionCode))
+		.on("mouseover", mouseover.bind(this, circle))
 		.on("mousemove", function(d){
 			// note that tooltip here is a global variable in global.js file
 			return tooltip.style("top",(event.pageY-10)+"px").style("left", (event.pageX+10)+"px");
@@ -216,17 +245,17 @@ LineChart.prototype.addMarkers = function(meanVal, circle, svg, chartHeight, x, 
 		.on("mouseout", function(d){
 			return tooltip.style("visibility", "hidden");
 		});
-	function color(){
-		var text = circle.regionCode;
+	function color(text){//thisobj will not appear in the arguments list
+		// var text = circle.regionCode;
 		if(text.indexOf("Neg")>-1) return "red";
 		else return "darkgoldenrod";		
 	}
 
-	function mouseover(){
+	function mouseover(circle){
 		// get the region code in the data
 		var codes = circle.regionCode.substring(circle.regionCode.indexOf("-")+1).split(",");
-		// generate the tip text information
-		var text = codes.length>1?(codes.length + " regions ("+ that.regionNames[codes[0]] +", etc.)"):that.regionNames[codes[0]];
+		// generate the tip text information, here this pointer is passed through bind() function
+		var text = codes.length>1?(codes.length + " regions ("+ this.regionNames[codes[0]] +", etc.)"):this.regionNames[codes[0]];
 		tooltip.html("<strong>Region: </strong>" + text 
 			+ "<br><strong>Value: </strong>" + parseFloat(circle.y).toFixed(2));
 		// turn on the visibility of the tooltip
@@ -246,4 +275,22 @@ LineChart.prototype.addTitle = function(svg, chartWidth, chartHeight, margin){
 		.attr("transform", "translate(0" + ","+ (margin.top) + ")")
 		.attr("font-size", "12px")
 		.text(this.parentKey);
+}
+
+//warn if overridding existing method
+if(Array.prototype.equals)
+	console.log("Overridding existing Array equals method!!!");
+
+Array.prototype.equals = function(array){
+	if(!array)	return false;
+	if(array.length != this.length) return false;
+	for(var i=0; i<this.length; i++){
+		if(this[i] instanceof Array && array[i] instanceof Array){
+			if(!this[i].equals(array[i])) return false;
+		}
+		else if(this[i] != array[i]){
+			return false;
+		}
+	}
+	return true;
 }
