@@ -177,8 +177,6 @@ function processClusterDataReq(data){
 
 //code block for extracting and drawing geojson contour given a region id or name 
 function processContourIMGReq(data){
-  var width = 200, 
-      height = 200;
   var base64 = '';
   var reqData = data;
   fs.readFile(data.filePath, (err, data)=>{
@@ -206,7 +204,9 @@ function processContourIMGReq(data){
     // }
       //draw the geometry on canvas
       var bounds = getBoundingBox(geometry);
-          canvas = new Canvas(parseInt(width), parseInt(height)),
+      var width = 200,
+          height = (bounds.yMax - bounds.yMin)/(bounds.xMax - bounds.xMin)*width;
+      var canvas = new Canvas(parseInt(width), parseInt(height)),
           context = canvas.getContext('2d')
       drawCanvas(canvas, context, geometry, bounds, width, height);
       base64 = canvas.toDataURL();
@@ -227,7 +227,7 @@ function drawCanvas(canvas, context, geometry, bounds, width, height){
   // Get the drawing context from our <canvas> and
   // set the fill to determine what color our map will be.
   context.strokeStyle = '#000';
-
+  context.lineWidth = 3;
   // Determine how much to scale our coordinates by
   var xScale = width / Math.abs(bounds.xMax - bounds.xMin);
   var yScale = height / Math.abs(bounds.yMax - bounds.yMin);

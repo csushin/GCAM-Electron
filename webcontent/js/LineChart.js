@@ -185,17 +185,57 @@ LineChart.prototype.startTransition = function(svg, chartWidth, chartHeight, rec
 			var circle = this.data[i];
 			var upMarker = {
 				x: this['years'][i],
-				y: circle[5],
+				y: circle[7],
 				regionCode: circle[4]
 			}
-			this.addMarkers(circle[0], upMarker, svg, x, y, 4);
+			var object = this.addMarkers(circle[0], upMarker, svg, x, y, 4);
+			if(i!=0 && (object.indexOf('image')>-1 || i==this.years.length-1)){
+				if(i==this.years.length-1) this.upperline.push(upMarker);
+				this.connectMarkers(this.upperline, svg, x, y, 'lct-upperline');
+				this.upperline = [];
+			}
+			else{
+				this.upperline.push(upMarker);
+			}
 			var downMarker = {
 				x: this['years'][i],
-				y: circle[7],
+				y: circle[5],
 				regionCode: circle[6]
 			}
-			this.addMarkers(circle[0], downMarker, svg, x, y, 6);
+			var object = this.addMarkers(circle[0], downMarker, svg, x, y, 6);
+			if(i!=0 && (object.indexOf('image')>-1 || i==this.years.length-1)){
+				if(i==this.years.length-1) this.lowerline.push(downMarker);
+				this.connectMarkers(this.lowerline, svg, x, y, 'lct-lowerline');
+				this.lowerline = [];
+			}
+			else{
+				this.lowerline.push(downMarker);
+			}
+
 		}.bind(thisobj), 110*i);// in default, the context of setTimeout is window, so we need to bind the thisobj context to the setTimeout function
+	}
+}
+
+LineChart.prototype.connectMarkers = function(points, svg, x, y, className){
+	var connectionline = d3.svg.line()
+						.interpolate('basis')
+						.x(d => x(d.x))
+						.y(d => y(d.y));
+	// svg.datum(points);
+	svg.append('path')
+		.datum(points)
+		.attr('class', className)
+		.transition()
+        .duration(1000)
+		.attrTween('d', getSmoothInterpolation);
+
+	function getSmoothInterpolation() {
+		var interpolate = d3.scale.quantile()
+                .domain([0,1])
+                .range(d3.range(1, points.length + 1));
+        return function(t) {
+            return connectionline(points.slice(0, interpolate(t)));
+        };
 	}
 }
 
@@ -219,64 +259,62 @@ LineChart.prototype.addMarkers = function(meanVal, circle, svg, x, y, boundIndex
 		.attr("opacity", 1);
 
 	var index = this['years'].indexOf(circle.x);
-	// if(index == 0){
-		//add highlighted world map or a single region
-
-	// }
-	// else{
-		var curRegions = this.data[index][boundIndex].substring(this.data[index][boundIndex].indexOf('-')+1).split(',');//[4] represents only query the maximum values
-		var prevRegions = index==0?[]:this.data[index-1][boundIndex].substring(this.data[index-1][boundIndex].indexOf('-')+1).split(',');
-		if(curRegions.equals(prevRegions)){//note here it invokes the customized prototype function
-			// insert the circle in each g element
-			marker.append("circle")
-				.attr("r", r)
-				.attr("cx", r)
-				.attr("cy", r)
-				.style("fill", color.bind(this, circle.regionCode))
-				.on("mouseover", mouseover.bind(this, circle))
-				.on("mousemove", function(d){
-					// note that tooltip here is a global variable in global.js file
-					return tooltip.style("top",(event.pageY-10)+"px").style("left", (event.pageX+10)+"px");
-				})
-				.on("mouseout", function(d){
-					return tooltip.style("visibility", "hidden");
-				});
-		}
-		else{// draw the region polygon
-			var containerId = this.containerId;
-			var regionHash = this.regionNames;
-			// get the region names corresponded to those ID. Note we ver very likely to have repeated region names.
-			var regionNames = curRegions.map(d => regionHash[parseInt(d)]);
-			//	find the unique region names in the region codes array
-			var uniqueRegionNames = regionNames.reduce(function(a, b){
-				if(a.length != b.length && a.indexOf(b) < 0) a.push(b);
-				return a;
-			}, []);
-			marker.append("svg:image")
-				.attr('id', containerId+"-"+index+'-'+boundIndex)
-				.attr('x', -25)
-				.attr('y', -25)
-				.attr('width', 50)
-				.attr('height', 50)
-				.attr('height', 50)
-				.attr('href', blankImg)
-				.on("mouseover", mouseover.bind(this, circle))
-				.on("mousemove", function(d){
-					// note that tooltip here is a global variable in global.js file
-					return tooltip.style("top",(event.pageY-10)+"px").style("left", (event.pageX+10)+"px");
-				})
-				.on("mouseout", function(d){
-					return tooltip.style("visibility", "hidden");
-				});;
-			socket.send('contourIMG request', {filePath: shapeFilePath, regionCode: uniqueRegionNames.join(','), lctId: containerId, index: index, boundIndex: boundIndex});
-		}
-	// }	
+	var curRegions = this.data[index][boundIndex].substring(this.data[index][boundIndex].indexOf('-')+1).split(',');//[4] represents only query the maximum values
+	var prevRegions = index==0?[]:this.data[index-1][boundIndex].substring(this.data[index-1][boundIndex].indexOf('-')+1).split(',');
+	if(curRegions.equals(prevRegions)){//note here it invokes the customized prototype function Array.equals(arr)
+		// insert the circle in each g element
+		marker.append("circle")
+			.attr("r", r)
+			.attr("cx", r)
+			.attr("cy", r)
+			.style("fill", color.bind(this, circle.regionCode))
+			.on("mouseover", mouseover.bind(this, circle))
+			.on("mousemove", function(d){
+				// note that tooltip here is a global variable in global.js file
+				return tooltip.style("top",(event.pageY-10)+"px").style("left", (event.pageX+10)+"px");
+			})
+			.on("mouseout", function(d){
+				return tooltip.style("visibility", "hidden");
+			});
+		return 'circle';
+	}
+	else{// draw the region polygon
+		var containerId = this.containerId;
+		var regionHash = this.regionNames;
+		// get the region names corresponded to those ID. Note we ver very likely to have repeated region names.
+		var regionNames = curRegions.map(d => regionHash[parseInt(d)]);
+		//	find the unique region names in the region codes array
+		var uniqueRegionNames = regionNames.reduce(function(a, b){
+			if(a.length != b.length && a.indexOf(b) < 0) a.push(b);
+			return a;
+		}, []);
+		//fake image as place holder. We will change the base64 url after retrieving the data from the main process
+		marker.append("svg:image")
+			.attr('id', containerId+"-"+index+'-'+boundIndex)
+			.attr('x', -25)
+			.attr('y', -25)
+			.attr('width', 50)
+			.attr('height', 50)
+			.attr('height', 50)
+			.attr('href', blankImg)
+			.on("mouseover", mouseover.bind(this, circle))
+			.on("mousemove", function(d){
+				// note that tooltip here is a global variable in global.js file
+				return tooltip.style("top",(event.pageY-10)+"px").style("left", (event.pageX+10)+"px");
+			})
+			.on("mouseout", function(d){
+				return tooltip.style("visibility", "hidden");
+			});;
+		socket.send('contourIMG request', {filePath: shapeFilePath, regionCode: uniqueRegionNames.join(','), lctId: containerId, index: index, boundIndex: boundIndex});
+		return 'image';
+	}
 
 	
 
 	function color(text){//thisobj will not appear in the arguments list
-		if(text.indexOf("Neg")>-1) return "red";
-		else return "darkgoldenrod";		
+		return boundIndex==4?'#e41a1c':'#377eb8';
+		// if(text.indexOf("Neg")>-1) return "red";
+		// else return "darkgoldenrod";		
 	}
 
 	function mouseover(circle){
