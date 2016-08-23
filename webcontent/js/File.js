@@ -76,6 +76,10 @@ function readFileNew(e) {
 	clusterQueries = [],
 	clusterKeys = {};
 
+	/********************Begin Modification by Xing Liang, Aug 2016**************************/
+	var filePath = [];
+	/***********************End Modification by Xing Liang, Aug 2016***************************/ 
+
 	for (var i = 0, f; file = files[i]; i++){
 		if (!file || typeof(dataArray[file.name]) != "undefined") {
 			return;
@@ -84,6 +88,10 @@ function readFileNew(e) {
 		reader.fileName = file.name;
 
 		fileNames.push(reader.fileName);
+
+		/********************Begin Modification by Xing Liang, Aug 2016**************************/
+		filePath.push(file.path);
+		/***********************End Modification by Xing Liang, Aug 2016***************************/ 
 
 		reader.onload = function(e) {
 			var contents = e.target.result;
@@ -110,6 +118,8 @@ function readFileNew(e) {
 						console.log('if');
 					}
 				}
+				
+				shapeFilePath = filePath.filter(function(d){ if(d.indexOf(e.target.fileName)>-1) return d;}).pop();
 			}
 // <<<<<<< HEAD
 			// else{//otherwise, the data is scenario values.

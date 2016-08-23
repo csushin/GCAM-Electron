@@ -96,7 +96,8 @@ socket.on('statData response', function(event, req){
 
 socket.on('contourIMG response', function(event, req){
 	console.log('contourIMG received!', new Date());
-	//.....
+	var img = d3.select('#'+req.lctId+"-"+req.index+'-'+req.boundIndex);
+	img.attr('href', req.base64);
 })
 /***********************End Modification by Xing Liang, Aug 2016***************************/ 
 // =======

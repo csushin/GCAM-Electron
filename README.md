@@ -29,7 +29,9 @@ $ npm install
 <!-- <<<<<<< HEAD -->
 $ npm start
 
-
-=======
-$ npm start
+To use Canvas in Electron
+Because canvas is compiled with gyp and based on cairo, you should first follow the [instruction](https://github.com/Automattic/node-canvas/wiki/Installation---Windows) to install canvas.
+Then, you will need to install the Electron-Rebuild separately following the [instruction](https://github.com/electron/electron-rebuild) and then whenever you install a new npm package, rerun the electron-rebuild by `./node_modules/.bin/electron-rebuild`.
+<!-- ======= -->
+<!-- $ npm start/ -->
 <!-- >>>>>>> GCAM-Electron/master -->

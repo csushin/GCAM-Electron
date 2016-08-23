@@ -31,8 +31,8 @@ function prepareLineChart(parentKeys, childKeys){
 		var parentkey = $("#lct-parentkey-select option:selected").text();
 		var childKey = $("#lct-childkey-select option:selected").text();
 		// set the width and height of the div for each line chart
-		var width = $("#lct-main-container").width()*0.22;
-		var height = "200";
+		var width = $("#lct-main-container").width()*0.4;
+		var height = "500";
 		// get the time series data
 		var timeseries = linecharts.data[parentkey][childKey];
 		// the metric data is currently unavailable, so we leave them as undefined
@@ -72,6 +72,8 @@ var LineChart = function(parentKey, childKey, containerId, width, height, data, 
 	this.years = years.map(function(d) { return parseInt(d);});
 	this.regionNames = regionNames;
 	this.metric = metric;
+	this.upperline = [];
+	this.lowerline = [];
 }
 
 LineChart.prototype.drawLineChart = function (){
@@ -167,9 +169,6 @@ LineChart.prototype.drawPaths = function(svg, x, y, margin){
 }
 
 LineChart.prototype.startTransition = function(svg, chartWidth, chartHeight, rectClip, x, y, margin){
-	// save the context object for adding circles to the line chart during setTimeout() function.
-	// var that = this;
-
 	// set the time of line chart animation
 	rectClip.transition()
 		.duration(100*this.years.length)
@@ -177,6 +176,7 @@ LineChart.prototype.startTransition = function(svg, chartWidth, chartHeight, rec
 
 
 	for(var i=0; i<this.data.length; i++){
+		// note here the reason we write another function to package the setTimeout is that setTimeOut will use 
 		animateDot(this, i);//pass the this context object to the function
 	}
 
@@ -188,38 +188,25 @@ LineChart.prototype.startTransition = function(svg, chartWidth, chartHeight, rec
 				y: circle[5],
 				regionCode: circle[4]
 			}
-			this.addMarkers(circle[0], upMarker, svg, chartHeight, x, y, margin;
+			this.addMarkers(circle[0], upMarker, svg, x, y, 4);
 			var downMarker = {
 				x: this['years'][i],
 				y: circle[7],
 				regionCode: circle[6]
 			}
-			this.addMarkers(circle[0], downMarker, svg, chartHeight, x, y, margin);
+			this.addMarkers(circle[0], downMarker, svg, x, y, 6);
 		}.bind(thisobj), 110*i);// in default, the context of setTimeout is window, so we need to bind the thisobj context to the setTimeout function
-	}
-
-	function isChange(i){
-		if(i==0){
-			return 0;//show the world map and highlight the involved regions
-		}
-		else{
-			var curRegions = this.data[i][4].substring(this.data[i][4].indexOf('-')+1).split(',');//[4] represents only query the maximum values
-			var prevRegions = this.data[i-1][4].substring(this.data[i-1][4].indexOf('-')+1).split(',');//[4] represents only query the maximum values
-			if(curRegions.equals(prevRegions))//note here it invokes the customized prototype function
-				return 1;// draw circle
-			else
-				return 2;// draw the region polygon
-		}
 	}
 }
 
 
-LineChart.prototype.addMarkers = function(meanVal, circle, svg, chartHeight, x, y, margin){
+LineChart.prototype.addMarkers = function(meanVal, circle, svg, x, y, boundIndex){
 	// initialize the circle parameters
 	var r = 3,
 		xPos = x(circle.x)-r,
 		yPos = y(circle.y)-r,
 		yPosStart = y(meanVal);//the animation starts from the meanline
+
 
 	var marker = svg.append("g")
 		.attr("transform", "translate(" + (xPos) + "," + yPosStart + ")")
@@ -230,23 +217,64 @@ LineChart.prototype.addMarkers = function(meanVal, circle, svg, chartHeight, x, 
 		.duration(500)
 		.attr("transform", "translate(" + (xPos) + "," + yPos + ")")
 		.attr("opacity", 1);
-		
-	// insert the circle in each g element
-	marker.append("circle")
-		.attr("r", r)
-		.attr("cx", r)
-		.attr("cy", r)
-		.style("fill", color.bind(this, circle.regionCode))
-		.on("mouseover", mouseover.bind(this, circle))
-		.on("mousemove", function(d){
-			// note that tooltip here is a global variable in global.js file
-			return tooltip.style("top",(event.pageY-10)+"px").style("left", (event.pageX+10)+"px");
-		})
-		.on("mouseout", function(d){
-			return tooltip.style("visibility", "hidden");
-		});
+
+	var index = this['years'].indexOf(circle.x);
+	// if(index == 0){
+		//add highlighted world map or a single region
+
+	// }
+	// else{
+		var curRegions = this.data[index][boundIndex].substring(this.data[index][boundIndex].indexOf('-')+1).split(',');//[4] represents only query the maximum values
+		var prevRegions = index==0?[]:this.data[index-1][boundIndex].substring(this.data[index-1][boundIndex].indexOf('-')+1).split(',');
+		if(curRegions.equals(prevRegions)){//note here it invokes the customized prototype function
+			// insert the circle in each g element
+			marker.append("circle")
+				.attr("r", r)
+				.attr("cx", r)
+				.attr("cy", r)
+				.style("fill", color.bind(this, circle.regionCode))
+				.on("mouseover", mouseover.bind(this, circle))
+				.on("mousemove", function(d){
+					// note that tooltip here is a global variable in global.js file
+					return tooltip.style("top",(event.pageY-10)+"px").style("left", (event.pageX+10)+"px");
+				})
+				.on("mouseout", function(d){
+					return tooltip.style("visibility", "hidden");
+				});
+		}
+		else{// draw the region polygon
+			var containerId = this.containerId;
+			var regionHash = this.regionNames;
+			// get the region names corresponded to those ID. Note we ver very likely to have repeated region names.
+			var regionNames = curRegions.map(d => regionHash[parseInt(d)]);
+			//	find the unique region names in the region codes array
+			var uniqueRegionNames = regionNames.reduce(function(a, b){
+				if(a.length != b.length && a.indexOf(b) < 0) a.push(b);
+				return a;
+			}, []);
+			marker.append("svg:image")
+				.attr('id', containerId+"-"+index+'-'+boundIndex)
+				.attr('x', -25)
+				.attr('y', -25)
+				.attr('width', 50)
+				.attr('height', 50)
+				.attr('height', 50)
+				.attr('href', blankImg)
+				.on("mouseover", mouseover.bind(this, circle))
+				.on("mousemove", function(d){
+					// note that tooltip here is a global variable in global.js file
+					return tooltip.style("top",(event.pageY-10)+"px").style("left", (event.pageX+10)+"px");
+				})
+				.on("mouseout", function(d){
+					return tooltip.style("visibility", "hidden");
+				});;
+			socket.send('contourIMG request', {filePath: shapeFilePath, regionCode: uniqueRegionNames.join(','), lctId: containerId, index: index, boundIndex: boundIndex});
+		}
+	// }	
+
+	
+
 	function color(text){//thisobj will not appear in the arguments list
-		// var text = circle.regionCode;
 		if(text.indexOf("Neg")>-1) return "red";
 		else return "darkgoldenrod";		
 	}
@@ -257,10 +285,15 @@ LineChart.prototype.addMarkers = function(meanVal, circle, svg, chartHeight, x, 
 		// generate the tip text information, here this pointer is passed through bind() function
 		var text = codes.length>1?(codes.length + " regions ("+ this.regionNames[codes[0]] +", etc.)"):this.regionNames[codes[0]];
 		tooltip.html("<strong>Region: </strong>" + text 
-			+ "<br><strong>Value: </strong>" + parseFloat(circle.y).toFixed(2));
+			+ "<br><strong>Value: </strong>" + parseFloat(circle.y).toFixed(2)
+			+ "<br><strong>Year: </strong>" + parseInt(circle.x));
 		// turn on the visibility of the tooltip
 		return tooltip.style("visibility", "visible");
 	}
+}
+
+LineChart.prototype.addPolygon = function(){
+
 }
 
 LineChart.prototype.addTitle = function(svg, chartWidth, chartHeight, margin){

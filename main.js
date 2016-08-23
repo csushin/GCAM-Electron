@@ -138,9 +138,9 @@ statChild.on('error', function (err) {
 });
 
 statChild.on('exit', function(code, signal){
-  console.log('Child exited with code ' + code);
+  console.log('Stat Child exited with code ' + code);
   if(code > 0){
-    console.log('New child is being spawned!')
+    console.log('New stat child is being spawned!')
     statChild = child_process.fork(`${__dirname}/sub.js`);
   }
 })
