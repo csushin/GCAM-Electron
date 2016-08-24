@@ -1,14 +1,20 @@
 //prepare the line chart: 1) inserting the valid output types into the select box. 2) validating the input
 function prepareLineChart(parentKeys, childKeys){
+	//empty the container
 	$("#lct-main-container").empty();
+	//dynamically load the parent keys from the data user selected
 	$.each(parentKeys, function(index, value){
 		$("#lct-parentkey-select").append($("<option ></option>").attr("value", index).text(value));
 	});
 	$("#lct-parentkey-select option[value=0]").attr("selected", "selected");//set the first element in the parentKeys as the default value
-	$.each(childKeys[parentKeys[0]], function(index, value){//set childKeys of the first select as the default value
+
+	//set childKeys of the first parent key as the default value
+	$.each(childKeys[parentKeys[0]], function(index, value){
 		$("#lct-childkey-select").append($("<option></option>").attr("value", index).text(value));
 	});
-	$("#lct-parentkey-select").change(function(){//change the childkeys by the selected value of the parent key
+
+	//dynamically load the child keys from the parent key user selected
+	$("#lct-parentkey-select").change(function(){
 		$("#lct-childkey-select").empty();
 		var parentkey = $("#lct-parentkey-select option:selected").text();
 		var validChildKeys = childKeys[parentkey];
@@ -16,26 +22,43 @@ function prepareLineChart(parentKeys, childKeys){
 			$("#lct-childkey-select").append($("<option></option>").attr("value", index).text(value));
 		})
 	});
+
+	// set the first element of the child keys as the default option
 	$("#lct-childkey-select option[value=0]").attr("selected", "selected");
 
+	// listening the click event and add the line chart
 	$("#lct-add-btn").click(function(){
-		// if($("#lct-main-container").height() == 0){
-		// 	$("#lct-main-container").css("height", )
-		// }
 		var parentkey = $("#lct-parentkey-select option:selected").text();
 		var childKey = $("#lct-childkey-select option:selected").text();
-		var width = $("#lct-main-container").width()*0.22;
-		var height = "200";
+		// set the width and height of the div for each line chart
+		var width = $("#lct-main-container").width()*0.4;
+		var height = "500";
+		// get the time series data
 		var timeseries = linecharts.data[parentkey][childKey];
-		var metric = undefined;//linecharts.unit[parentkey][childKey];
+		// the metric data is currently unavailable, so we leave them as undefined
+		var metric = undefined;
+		// dynamically name the id so that we can get the handler of that div and remove it
 		var containerId = "lct-container-"+linecharts.charts.length;
-		$("#lct-main-container").append($("<div></div>").attr("width", width).attr("height", height).attr("id", containerId).css("float", "left"))
+		// inser the div
+		$("#lct-main-container").append($("<div></div>").attr("width", width).attr("height", height).attr("id", containerId).css("float", "left"));
+		// initialize the parameters in the line chart and return the object as the handler so that we can play with it in future
 		var lct = new LineChart(parentkey, childKey, containerId, width, height, timeseries, linecharts.years, linecharts.regionNames, metric);
+		// begin to draw the line chart
 		lct.drawLineChart();
+		// push it to our global variables
 		linecharts.charts.push(lct);
 	});
-    
-	//add the function of removing line charts by using right click and selecting menu.
+}
+
+// return a set of base64 url or a single one
+function queryPolygon(regioncode){
+	//if it only has one region
+	if(regioncode.length>1){
+
+	}
+	else{
+
+	}
 }
 
 var LineChart = function(parentKey, childKey, containerId, width, height, data, years, regionNames, metric){
@@ -45,25 +68,34 @@ var LineChart = function(parentKey, childKey, containerId, width, height, data, 
 	this.width = width;
 	this.height = height;
 	this.data = data;
+	// note that the int number from the server will be string, so we need to convert it first.
 	this.years = years.map(function(d) { return parseInt(d);});
 	this.regionNames = regionNames;
 	this.metric = metric;
+	this.upperline = [];
+	this.lowerline = [];
 }
 
 LineChart.prototype.drawLineChart = function (){
+	// initialize the parameters required in svg
 	$("#"+this.containerId).empty();
 	$("#"+this.containerId).width(this.width);
 	$("#"+this.containerId).height(this.height);
 	var margin = {top: 20, right: 20, bottom: 40, left: 40},
 		chartWidth = this.width - margin.left - margin.right,
 		chartHeight = this.height - margin.top - margin.bottom;
+
+	// get the minval and maxval on y axis.
 	var minVal = d3.min(this.data, function(d){ return d[2]<d[5]?d[2]:d[5];}),
 		maxVal = d3.max(this.data, function(d){ return d[7]>d[3]?d[7]:d[3];});
-	//properly scale down or scale up the data for better visualization effect
+
+	// to have a better visualization effect, we properly scale down or up the max/min data
 	minVal = (minVal<0?1.2:0.8)*minVal;
 	maxVal = (maxVal<0?0.8:1.2)*maxVal;
 	var x = d3.scale.linear().range([0, chartWidth]).domain([d3.min(this.years), d3.max(this.years)]);
 	var y = d3.scale.linear().range([chartHeight, 0]).domain([minVal, maxVal]);
+
+	// note that we do not need comma in year so we need to convert the tick format
 	var xAxis = d3.svg.axis().scale(x).orient('bottom').innerTickSize(-chartHeight).outerTickSize(0).tickPadding(10).tickFormat(d3.format("d")),
 		yAxis = d3.svg.axis().scale(y).orient('left').innerTickSize(-chartWidth).outerTickSize(0).tickPadding(10);
 
@@ -73,11 +105,14 @@ LineChart.prototype.drawLineChart = function (){
 		.append("g")
 		.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
+	// insert a clip for animation
 	var rectClip = svg.append("clipPath")
 		.attr("id", "rect-clip")
 		.append("rect")
 			.attr("width", 0)
 			.attr("height", chartHeight);
+
+	// render each element: axis, path, animation and title
 	this.addAxesAndLegend(svg, xAxis, yAxis, margin, chartWidth, chartHeight);
 	this.drawPaths(svg, x, y, margin);
 	this.startTransition(svg, chartWidth, chartHeight, rectClip, x, y, margin);
@@ -88,25 +123,12 @@ LineChart.prototype.drawLineChart = function (){
 LineChart.prototype.addAxesAndLegend = function(svg, xAxis, yAxis, margin, chartWidth, chartHeight){
 	var legendWidth = 100,
 		legendHeight = 50;
-	// clipping to make sure nothing appears behind legend
-	// svg.append('clipPath')
-	//     .attr('id', 'axes-clip')
-	//     .append('polygon')
-	//       .attr('points', (-margin.left)                 + ',' + (-margin.top)                 + ' ' +
-	//                       (chartWidth - legendWidth - 1) + ',' + (-margin.top)                 + ' ' +
-	//                       (chartWidth - legendWidth - 1) + ',' + legendHeight                  + ' ' +
-	//                       (chartWidth + margin.right)    + ',' + legendHeight                  + ' ' +
-	//                       (chartWidth + margin.right)    + ',' + (chartHeight + margin.bottom) + ' ' +
-	//                       (-margin.left)                 + ',' + (chartHeight + margin.bottom));
-
-	// var axes = svg.append('g')
-	    // .attr('clip-path', 'url(#axes-clip)');
-
 
 	var axes = svg.append("g").attr("class", "lct-axis")
 		.attr("transform", "translate(0," + chartHeight + ")")
 		.call(xAxis);
 
+	// note that this.metric is undefined currently and will be added in future.
 	axes.append("g")
 		.attr("class", "lct-axis")
 		.attr("transform", "translate(0,-" + chartHeight + ")")
@@ -117,35 +139,6 @@ LineChart.prototype.addAxesAndLegend = function(svg, xAxis, yAxis, margin, chart
 			.attr("dy", ".71em")
 			.style("text-anchor", "end")
 			.text(this.metric);
-	// // This range should be rendered outside each single line chart because it can be shared by many line charts
-	// var legend = svg.append("g")
-	// 	.attr("class", "lct legend")
-	// 	.attr("transform", "translate(" + (chartWidth - legendWidth) + ",0)");
-
-	// legend.append("rect")
-	// 	.attr('class', "lct legend-bg")
-	// 	.attr("width", legendWidth)
-	// 	.attr("height", legendHeight);
-	// legend.append("circle")
-	// 	.attr("class", "lct outlierct")
-	// 	.attr("r", "5")
-	// 	.attr("x", 10)
-	// 	.attr("y", 10)
-	// 	.style("fill", "red");
-	// legend.append("text")
-	// 	.attr("x", 115)
-	// 	.attr("y", 25)
-	// 	.text("The most marginal country (beyond normal range).");
-	// legend.append("circle")
-	// 	.attr("r", "5")
-	// 	.attr("x", 10)
-	// 	.attr("y", 25)
-	// 	.style("fill", "yellow");
-	// legend.append("rect")
-	// 	.attr("class", "lct-range")
-	// 	.attr('x', 115)
-	//     .attr('y', 85)
-	//     .text('Normal Range');
 }
 
 LineChart.prototype.drawPaths = function(svg, x, y, margin){
@@ -162,10 +155,13 @@ LineChart.prototype.drawPaths = function(svg, x, y, margin){
 
 	svg.datum(this.data);
 
+	// draw the area chart in which the upper bound is mean+2std and lower bound is mean-2std
 	svg.append("path")
 		.attr("class", "lct-range")
 		.attr("d", range)
 		.attr("clip-path", 'url(#rect-clip)');
+
+	// draw the line using mean value
 	svg.append("path")
 		.attr("class", "lct-meanline")
 		.attr("d", meanline)
@@ -173,68 +169,169 @@ LineChart.prototype.drawPaths = function(svg, x, y, margin){
 }
 
 LineChart.prototype.startTransition = function(svg, chartWidth, chartHeight, rectClip, x, y, margin){
-	var that = this;
+	// set the time of line chart animation
 	rectClip.transition()
-		.duration(100*that.years.length)
+		.duration(100*this.years.length)
 		.attr("width", chartWidth);
 
-	this.data.forEach(function(circle, i){
-		setTimeout(function() {
+
+	for(var i=0; i<this.data.length; i++){
+		// note here the reason we write another function to package the setTimeout is that setTimeOut will use 
+		animateDot(this, i);//pass the this context object to the function
+	}
+
+	function animateDot(thisobj, i){
+		setTimeout(function(){
+			var circle = this.data[i];
 			var upMarker = {
-				x: that.years[i],
-				y: circle[5],
+				x: this['years'][i],
+				y: circle[7],
 				regionCode: circle[4]
 			}
-			that.addMarkers(circle[0], upMarker, svg, chartHeight, x, y, margin);
+			var object = this.addMarkers(circle[0], upMarker, svg, x, y, 4);
+			if(i!=0 && (object.indexOf('image')>-1 || i==this.years.length-1)){
+				if(i==this.years.length-1) this.upperline.push(upMarker);
+				this.connectMarkers(this.upperline, svg, x, y, 'lct-upperline');
+				this.upperline = [];
+			}
+			else{
+				this.upperline.push(upMarker);
+			}
 			var downMarker = {
-				x: that.years[i],
-				y: circle[7],
+				x: this['years'][i],
+				y: circle[5],
 				regionCode: circle[6]
 			}
-			that.addMarkers(circle[0], downMarker, svg, chartHeight, x, y, margin);
-		}, 110*i);//note the delay follows the time delay in transition animation
-	});
+			var object = this.addMarkers(circle[0], downMarker, svg, x, y, 6);
+			if(i!=0 && (object.indexOf('image')>-1 || i==this.years.length-1)){
+				if(i==this.years.length-1) this.lowerline.push(downMarker);
+				this.connectMarkers(this.lowerline, svg, x, y, 'lct-lowerline');
+				this.lowerline = [];
+			}
+			else{
+				this.lowerline.push(downMarker);
+			}
+
+		}.bind(thisobj), 110*i);// in default, the context of setTimeout is window, so we need to bind the thisobj context to the setTimeout function
+	}
+}
+
+LineChart.prototype.connectMarkers = function(points, svg, x, y, className){
+	var connectionline = d3.svg.line()
+						.interpolate('basis')
+						.x(d => x(d.x))
+						.y(d => y(d.y));
+	// svg.datum(points);
+	svg.append('path')
+		.datum(points)
+		.attr('class', className)
+		.transition()
+        .duration(1000)
+		.attrTween('d', getSmoothInterpolation);
+
+	function getSmoothInterpolation() {
+		var interpolate = d3.scale.quantile()
+                .domain([0,1])
+                .range(d3.range(1, points.length + 1));
+        return function(t) {
+            return connectionline(points.slice(0, interpolate(t)));
+        };
+	}
 }
 
 
-LineChart.prototype.addMarkers = function(meanVal, circle, svg, chartHeight, x, y, margin){
-	var that = this;
+LineChart.prototype.addMarkers = function(meanVal, circle, svg, x, y, boundIndex){
+	// initialize the circle parameters
 	var r = 3,
 		xPos = x(circle.x)-r,
 		yPos = y(circle.y)-r,
 		yPosStart = y(meanVal);//the animation starts from the meanline
+
+
 	var marker = svg.append("g")
 		.attr("transform", "translate(" + (xPos) + "," + yPosStart + ")")
 		.attr("opacity", 0);
+
+	// set the time of the circle
 	marker.transition()
 		.duration(500)
 		.attr("transform", "translate(" + (xPos) + "," + yPos + ")")
 		.attr("opacity", 1);
-	marker.append("circle")
-		.attr("r", r)
-		.attr("cx", r)
-		.attr("cy", r)
-		.style("fill", color)
-		.on("mouseover", mouseover)
-		.on("mousemove", function(d){
-			return tooltip.style("top",(event.pageY-10)+"px").style("left", (event.pageX+10)+"px");
-		})
-		.on("mouseout", function(d){
-			return tooltip.style("visibility", "hidden");
-		});
-	function color(){
-		var text = circle.regionCode;//though this is dirty code, it has the access to the local variable and indeed works
-		if(text.indexOf("Neg")>-1) return "red";
-		else return "darkgoldenrod";		
+
+	var index = this['years'].indexOf(circle.x);
+	var curRegions = this.data[index][boundIndex].substring(this.data[index][boundIndex].indexOf('-')+1).split(',');//[4] represents only query the maximum values
+	var prevRegions = index==0?[]:this.data[index-1][boundIndex].substring(this.data[index-1][boundIndex].indexOf('-')+1).split(',');
+	if(curRegions.equals(prevRegions)){//note here it invokes the customized prototype function Array.equals(arr)
+		// insert the circle in each g element
+		marker.append("circle")
+			.attr("r", r)
+			.attr("cx", r)
+			.attr("cy", r)
+			.style("fill", color.bind(this, circle.regionCode))
+			.on("mouseover", mouseover.bind(this, circle))
+			.on("mousemove", function(d){
+				// note that tooltip here is a global variable in global.js file
+				return tooltip.style("top",(event.pageY-10)+"px").style("left", (event.pageX+10)+"px");
+			})
+			.on("mouseout", function(d){
+				return tooltip.style("visibility", "hidden");
+			});
+		return 'circle';
+	}
+	else{// draw the region polygon
+		var containerId = this.containerId;
+		var regionHash = this.regionNames;
+		// get the region names corresponded to those ID. Note we ver very likely to have repeated region names.
+		var regionNames = curRegions.map(d => regionHash[parseInt(d)]);
+		//	find the unique region names in the region codes array
+		var uniqueRegionNames = regionNames.reduce(function(a, b){
+			if(a.length != b.length && a.indexOf(b) < 0) a.push(b);
+			return a;
+		}, []);
+		//fake image as place holder. We will change the base64 url after retrieving the data from the main process
+		marker.append("svg:image")
+			.attr('id', containerId+"-"+index+'-'+boundIndex)
+			.attr('x', -25)
+			.attr('y', -25)
+			.attr('width', 50)
+			.attr('height', 50)
+			.attr('height', 50)
+			.attr('href', blankImg)
+			.on("mouseover", mouseover.bind(this, circle))
+			.on("mousemove", function(d){
+				// note that tooltip here is a global variable in global.js file
+				return tooltip.style("top",(event.pageY-10)+"px").style("left", (event.pageX+10)+"px");
+			})
+			.on("mouseout", function(d){
+				return tooltip.style("visibility", "hidden");
+			});;
+		socket.send('contourIMG request', {filePath: shapeFilePath, regionCode: uniqueRegionNames.join(','), lctId: containerId, index: index, boundIndex: boundIndex});
+		return 'image';
 	}
 
-	function mouseover(){
+	
+
+	function color(text){//thisobj will not appear in the arguments list
+		return boundIndex==4?'#e41a1c':'#377eb8';
+		// if(text.indexOf("Neg")>-1) return "red";
+		// else return "darkgoldenrod";		
+	}
+
+	function mouseover(circle){
+		// get the region code in the data
 		var codes = circle.regionCode.substring(circle.regionCode.indexOf("-")+1).split(",");
-		var text = codes.length>1?(codes.length + " regions ("+ that.regionNames[codes[0]] +", etc.)"):that.regionNames[codes[0]];
+		// generate the tip text information, here this pointer is passed through bind() function
+		var text = codes.length>1?(codes.length + " regions ("+ this.regionNames[codes[0]] +", etc.)"):this.regionNames[codes[0]];
 		tooltip.html("<strong>Region: </strong>" + text 
-			+ "<br><strong>Value: </strong>" + parseFloat(circle.y).toFixed(2));
+			+ "<br><strong>Value: </strong>" + parseFloat(circle.y).toFixed(2)
+			+ "<br><strong>Year: </strong>" + parseInt(circle.x));
+		// turn on the visibility of the tooltip
 		return tooltip.style("visibility", "visible");
 	}
+}
+
+LineChart.prototype.addPolygon = function(){
+
 }
 
 LineChart.prototype.addTitle = function(svg, chartWidth, chartHeight, margin){
@@ -249,4 +346,22 @@ LineChart.prototype.addTitle = function(svg, chartWidth, chartHeight, margin){
 		.attr("transform", "translate(0" + ","+ (margin.top) + ")")
 		.attr("font-size", "12px")
 		.text(this.parentKey);
+}
+
+//warn if overridding existing method
+if(Array.prototype.equals)
+	console.log("Overridding existing Array equals method!!!");
+
+Array.prototype.equals = function(array){
+	if(!array)	return false;
+	if(array.length != this.length) return false;
+	for(var i=0; i<this.length; i++){
+		if(this[i] instanceof Array && array[i] instanceof Array){
+			if(!this[i].equals(array[i])) return false;
+		}
+		else if(this[i] != array[i]){
+			return false;
+		}
+	}
+	return true;
 }

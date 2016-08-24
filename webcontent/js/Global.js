@@ -64,6 +64,7 @@ var linecharts = {
 	data:{},
 	charts: []
 };
+var blankImg = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';//smallest blank image
 var tooltip = d3.select("body")
 	.append("div")
 	.style("position", "absolute")
@@ -73,7 +74,7 @@ var tooltip = d3.select("body")
 	.style("visibility", "hidden");
 // =======
 // >>>>>>> GCAM-Electron/master
-
+var shapeFilePath = '';
 var clusterColors = [
    [20, 20, 80],
    [22, 22, 90],
