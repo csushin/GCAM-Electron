@@ -50,16 +50,6 @@ function prepareLineChart(parentKeys, childKeys){
 	});
 }
 
-// return a set of base64 url or a single one
-function queryPolygon(regioncode){
-	//if it only has one region
-	if(regioncode.length>1){
-
-	}
-	else{
-
-	}
-}
 
 var LineChart = function(parentKey, childKey, containerId, width, height, data, years, regionNames, metric){
 	this.parentKey = parentKey;
@@ -328,10 +318,6 @@ LineChart.prototype.addMarkers = function(meanVal, circle, svg, x, y, boundIndex
 		// turn on the visibility of the tooltip
 		return tooltip.style("visibility", "visible");
 	}
-}
-
-LineChart.prototype.addPolygon = function(){
-
 }
 
 LineChart.prototype.addTitle = function(svg, chartWidth, chartHeight, margin){
